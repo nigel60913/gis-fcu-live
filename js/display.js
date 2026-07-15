@@ -69,7 +69,8 @@ function render() {
 function renderWC(target) {
   target.innerHTML = `<canvas id="wcCanvas"></canvas>`;
   const canvas = document.getElementById("wcCanvas");
-  const words = tallyWords(responses.map((r) => r.value));
+  const allWords = responses.flatMap((r) => (Array.isArray(r.value) ? r.value : [r.value]));
+  const words = tallyWords(allWords);
   const draw = () => renderWordCloud(canvas, words);
   draw();
   if (resizeHandler) window.removeEventListener("resize", resizeHandler);
@@ -93,7 +94,7 @@ function renderBars(target, isMulti) {
 
   if (!opts.length) { target.innerHTML = `<p class="muted">此題尚未設定選項</p>`; return; }
 
-  target.innerHTML = opts
+  const barsHtml = opts
     .map((opt, i) => {
       const isCorrect = question.type === "quiz" && revealed && i === question.correctIndex;
       return `
@@ -103,6 +104,34 @@ function renderBars(target, isMulti) {
       </div>`;
     })
     .join("");
+
+  const buzzerHtml = question.type === "quiz" && revealed ? renderBuzzerBoard() : "";
+  target.innerHTML = buzzerHtml + barsHtml;
+}
+
+// 搶答排行榜：只在「公布結果」後出現，依答對且最快送出的順序列前 5 名
+function renderBuzzerBoard() {
+  const correct = responses
+    .filter((r) => r.value === question.correctIndex && r.createdAt)
+    .sort((a, b) => (a.createdAt.seconds ?? 0) - (b.createdAt.seconds ?? 0) || (a.createdAt.nanoseconds ?? 0) - (b.createdAt.nanoseconds ?? 0))
+    .slice(0, 5);
+
+  if (!correct.length) {
+    return `<div class="buzzer-board"><div class="buzzer-title">⚡ 搶答排行榜</div><p class="muted" style="font-size:20px;">這題沒有人答對～</p></div>`;
+  }
+
+  const medalCls = ["gold", "silver", "bronze"];
+  const medalIcon = ["🥇", "🥈", "🥉"];
+  const rows = correct
+    .map((r, i) => `
+      <div class="buzzer-row ${medalCls[i] || ""}">
+        <div class="buzzer-rank">${medalIcon[i] || i + 1}</div>
+        <div class="buzzer-name">${escapeHtml(r.nickname || "匿名")}</div>
+        <div class="buzzer-time">${i === 0 ? "最快答對！" : `第 ${i + 1} 快`}</div>
+      </div>`)
+    .join("");
+
+  return `<div class="buzzer-board"><div class="buzzer-title">⚡ 搶答排行榜</div>${rows}</div>`;
 }
 
 function renderRanking(target) {
@@ -119,11 +148,13 @@ function renderRanking(target) {
   const max = Math.max(1, ...scores);
   const medals = ["🥇", "🥈", "🥉"];
 
-  target.innerHTML = order
+  const barsHtml = order
     .map((o, rank) => `
       <div class="big-bar-row">
-        <div class="lab"><span><span class="rank-medal">${medals[rank] || rank + 1 + "."}</span>${escapeHtml(o.opt)}</span><span>${o.score}</span></div>
+        <div class="lab"><span><span class="rank-medal">${medals[rank] || (rank + 1 + ".")}</span>${escapeHtml(o.opt)}</span><span>${o.score} 分</span></div>
         <div class="big-bar-track"><div class="big-bar-fill" style="width:${(o.score / max) * 100}%"></div></div>
       </div>`)
     .join("");
+
+  target.innerHTML = barsHtml + `<div class="rank-sub">共 ${responses.length} 人完成排序 · 分數 = 大家把它排第幾名的加總</div>`;
 }
