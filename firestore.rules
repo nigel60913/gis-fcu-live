@@ -1,0 +1,41 @@
+rules_version = '2';
+
+// 部署方式：Firebase 主控台 → Firestore Database → 規則，貼上這份內容後「發布」
+// 或使用 CLI： firebase deploy --only firestore:rules
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 題目：所有人（含未登入的觀眾／投影頁）可以讀取；
+    // 只有登入的 Google 帳號可以新增/修改/刪除（實際白名單在前端 ADMIN_EMAILS 檢查，
+    // 若要更嚴謹可改用下方 isAdmin() 搭配 admins collection）
+    match /questions/{questionId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+
+      // 觀眾作答紀錄：任何人都能新增/更新自己那一筆（以 clientId 當文件 id），
+      // 且只允許寫入 value / clientId / createdAt 這幾個欄位
+      match /responses/{responseId} {
+        allow read: if true;
+        allow create, update: if request.resource.data.keys().hasOnly(['value', 'clientId', 'createdAt'])
+                                && request.resource.data.clientId is string;
+        allow delete: if request.auth != null;
+      }
+    }
+
+    // 現場流程狀態（目前題目、開放/公布）：所有人可讀，僅登入者可寫
+    match /session/{doc} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}
+
+// 進階：若要限制只有特定 Google 帳號能寫入（而不是任何登入者），
+// 可以改用下面這種寫法，搭配在 Firestore 建一個 admins/{email} 的 collection：
+//
+// function isAdmin() {
+//   return request.auth != null &&
+//     exists(/databases/$(database)/documents/admins/$(request.auth.token.email));
+// }
+// 然後把上面 write 條件換成 isAdmin()

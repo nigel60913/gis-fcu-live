@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>主持人後台｜GIS.FCU Live</title>
+<link rel="icon" href="assets/logo.png" />
+<link rel="stylesheet" href="css/style.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  .layout { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  .qr-box { display: flex; justify-content: center; padding: 16px; background: #fff; border-radius: var(--radius-md); }
+  .link-row { display: flex; gap: 8px; margin-top: 10px; }
+  .link-row input { font-size: 12px; }
+  .q-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; border: 1.5px solid var(--line); border-radius: var(--radius-md);
+    margin-bottom: 10px; background: #fff; cursor: pointer; transition: all .15s ease;
+  }
+  .q-item:hover { border-color: var(--blue-400); }
+  .q-item.active-q { border-color: var(--lime-500); background: var(--lime-100); }
+  .q-item .idx { flex: 0 0 26px; color: var(--blue-600); font-weight: 800; font-family: var(--font-display); }
+  .q-item .body { flex: 1; min-width: 0; }
+  .q-item .body .t { font-weight: 700; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .q-item .meta { display:flex; gap:6px; margin-top:4px; align-items:center; }
+  .q-item .actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .icon-btn {
+    width: 30px; height: 30px; border-radius: 8px; border: 1.5px solid var(--line);
+    background: #fff; cursor: pointer; display:flex; align-items:center; justify-content:center; font-size: 13px;
+  }
+  .icon-btn:hover { border-color: var(--blue-400); background: var(--blue-100); }
+  .part-heading { font-size: 13px; font-weight: 800; color: var(--navy-800); margin: 22px 0 10px; }
+  .part-heading:first-child { margin-top: 0; }
+  dialog#editor {
+    border: none; border-radius: var(--radius-lg); padding: 0; width: min(560px, 92vw);
+    box-shadow: var(--shadow-lift);
+  }
+  dialog#editor::backdrop { background: rgba(4,58,94,0.35); backdrop-filter: blur(2px); }
+  .opt-edit-row { display: flex; gap: 8px; margin-bottom: 8px; align-items:center; }
+  .opt-edit-row input[type=text] { flex: 1; }
+  .type-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .type-choice {
+    border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 4px; text-align: center;
+    cursor: pointer; font-size: 12px; font-weight: 700;
+  }
+  .type-choice.sel { border-color: var(--navy-800); background: var(--blue-100); }
+  .session-ctrl-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  #loginGate { min-height: 80vh; display: flex; align-items: center; justify-content: center; }
+</style>
+</head>
+<body>
+<div class="contour-bg"></div>
+
+<div class="topbar">
+  <div class="brand">
+    <img class="logo" src="assets/logo.png" alt="GIS.FCU" />
+    <div class="divider"></div>
+    <div class="title">主持人後台</div>
+  </div>
+  <div class="row">
+    <span id="userLabel" class="muted"></span>
+    <button id="btnSignOut" class="btn btn-ghost btn-sm" style="display:none;">登出</button>
+  </div>
+</div>
+
+<div id="loginGate" class="page">
+  <div class="card" style="max-width:380px; text-align:center;">
+    <div class="eyebrow">主持人專用</div>
+    <h2 style="margin-top:14px; font-size:22px;">請先登入</h2>
+    <p class="muted" style="margin-top:8px;">使用授權的 Google 帳號登入以管理題目與現場流程</p>
+    <button id="btnSignIn" class="btn btn-primary btn-block" style="margin-top:20px;">使用 Google 登入</button>
+    <p id="loginErr" class="muted" style="color:var(--danger); margin-top:12px; display:none;"></p>
+  </div>
+</div>
+
+<div id="appRoot" class="page" style="display:none;">
+  <div class="layout">
+    <!-- 左欄：現場控制 -->
+    <div>
+      <div class="card">
+        <div class="eyebrow">現場連結</div>
+        <div class="qr-box" style="margin-top:12px;"><div id="qrcode"></div></div>
+        <div class="link-row">
+          <input type="text" id="audienceLink" readonly />
+          <button class="btn btn-ghost btn-sm" data-copy="audienceLink">複製</button>
+        </div>
+        <p class="muted" style="margin-top:6px;">觀眾掃 QR code 或輸入短網址進入作答頁</p>
+        <div class="divider-h"></div>
+        <div class="link-row">
+          <input type="text" id="displayLink" readonly />
+          <button class="btn btn-ghost btn-sm" data-copy="displayLink">複製</button>
+        </div>
+        <p class="muted" style="margin-top:6px;">大螢幕投影頁（給投影機 / 第二螢幕開啟）</p>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow lime">現場控制</div>
+        <div style="margin-top:12px;">
+          <div class="muted">目前題目</div>
+          <div id="activeQTitle" style="font-weight:800; font-size:16px; margin-top:4px;">尚未開始</div>
+          <div id="activeQState" class="pill" style="margin-top:8px;">閒置中</div>
+        </div>
+        <div class="session-ctrl-btns">
+          <button id="btnPrev" class="btn btn-ghost btn-sm">← 上一題</button>
+          <button id="btnNext" class="btn btn-ghost btn-sm">下一題 →</button>
+          <button id="btnReveal" class="btn btn-lime btn-sm">公布結果</button>
+          <button id="btnReopen" class="btn btn-ghost btn-sm">重新開放作答</button>
+        </div>
+        <div class="divider-h"></div>
+        <div class="row between">
+          <span class="muted">此題已回答</span>
+          <strong id="respCount">0</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右欄：題庫 -->
+    <div>
+      <div class="card">
+        <div class="row between wrap">
+          <div class="eyebrow">題庫</div>
+          <div class="row">
+            <button id="btnLoadSeed" class="btn btn-ghost btn-sm">載入範本題庫</button>
+            <button id="btnNewQ" class="btn btn-primary btn-sm">＋ 新增題目</button>
+          </div>
+        </div>
+        <div id="qList" style="margin-top:16px;"></div>
+        <div id="qEmpty" class="empty-state" style="display:none;">
+          <div class="icon">📋</div>
+          <p>還沒有題目，點右上角「載入範本題庫」快速開始，或「新增題目」自己建立。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<dialog id="editor">
+  <form method="dialog" id="editorForm">
+    <div style="padding:24px;">
+      <h3 style="font-size:18px;" id="editorTitle">新增題目</h3>
+      <div class="field" style="margin-top:16px;">
+        <label class="field-label">所屬段落</label>
+        <select id="fPart">
+          <option>暖場</option>
+          <option>全員互動</option>
+          <option>ESG 共創</option>
+          <option>Closing</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">題型</label>
+        <div class="type-grid" id="typeGrid"></div>
+      </div>
+      <div class="field">
+        <label class="field-label">題目內容</label>
+        <textarea id="fTitle" rows="2" placeholder="例如：你最有成就感的一件工作？"></textarea>
+      </div>
+      <div class="field" id="optionsField">
+        <label class="field-label">選項</label>
+        <div id="optList"></div>
+        <button type="button" id="btnAddOpt" class="btn btn-ghost btn-sm">＋ 新增選項</button>
+      </div>
+      <p class="muted" id="quizHint" style="display:none;">點選項左側圓點設定正確答案</p>
+      <div class="row" style="margin-top:20px; justify-content:flex-end;">
+        <button type="button" id="btnCancelEdit" class="btn btn-ghost">取消</button>
+        <button type="button" id="btnDeleteQ" class="btn btn-danger" style="display:none;">刪除題目</button>
+        <button type="button" id="btnSaveQ" class="btn btn-primary">儲存題目</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<script type="module" src="js/admin.js"></script>
+</body>
+</html>
