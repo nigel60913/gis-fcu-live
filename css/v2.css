@@ -1,0 +1,14 @@
+/* ESG x MM Live v2.0 */
+:root {
+  --v2-navy:#073b5c;
+  --v2-blue:#0877b9;
+  --v2-cyan:#54b9df;
+  --v2-lime:#b8d72d;
+  --v2-cream:#f8fbf2;
+}
+body::before {
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:-2;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(84,185,223,.18), transparent 34%),
+    radial-gradient(circle at 90% 90%, rgba(184,215,45,.18), transparent 32%),
+    linear-gradient(135deg,#f8fbff 0%,#fff 48%,#fbfdf3
