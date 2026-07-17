@@ -1,0 +1,4 @@
+export function toast(message){const el=document.getElementById('toast');if(!el)return;el.textContent=message;el.classList.add('show');clearTimeout(el._timer);el._timer=setTimeout(()=>el.classList.remove('show'),2400)}
+export function bindNetworkStatus(){const el=document.getElementById('network');if(!el)return;const update=()=>{el.hidden=navigator.onLine;el.textContent='目前離線，答案會在重新連線後同步'};addEventListener('online',()=>{update();toast('已重新連線')});addEventListener('offline',update);update()}
+export function setBusy(button,busy,label='處理中…'){if(!button)return;if(busy){button.dataset.label=button.textContent;button.textContent=label;button.disabled=true}else{button.textContent=button.dataset.label||button.textContent;button.disabled=false}}
+export function friendlyError(error){console.error(error);return error?.code==='permission-denied'?'沒有操作權限，請確認登入帳號':'連線發生問題，請稍後再試'}
