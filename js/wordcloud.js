@@ -19,13 +19,13 @@ export function renderWordCloud(canvas,words){
   canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);
   const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,height);
   if(!words.length)return;
-  const max=words[0].count,min=words.at(-1).count,maxFont=Math.min(132,width*.14,height*.25),minFont=Math.max(18,Math.min(width,height)*.032),placed=[];
+  const max=words[0].count,min=words.at(-1).count,maxFont=Math.min(96,width*.105,height*.17),minFont=Math.max(17,Math.min(width,height)*.029),placed=[];
   words.slice(0,80).forEach((word,index)=>{
     const frequency=max===min?Math.max(.18,1-index/Math.max(words.length,2)):(word.count-min)/(max-min);
-    let font=Math.round(minFont+(maxFont-minFont)*Math.pow(frequency,.62));
+    let font=Math.round(minFont+(maxFont-minFont)*Math.pow(frequency,.72));
     let box=null;
     while(font>=minFont&&!box){
-      ctx.font=`${index<4?800:650} ${font}px Inter,'Noto Sans TC',sans-serif`;
+      ctx.font=`${index<4?750:600} ${font}px 'Noto Sans TC',Inter,sans-serif`;
       const textWidth=ctx.measureText(word.text).width,pad=Math.max(5,font*.09),w=textWidth+pad*2,h=font*1.08+pad*2;
       const seed=hash(word.text),start=(seed%360)*Math.PI/180;
       for(let step=0;step<4200;step+=1){
@@ -37,7 +37,7 @@ export function renderWordCloud(canvas,words){
       if(!box)font-=2;
     }
     if(!box)return;
-    placed.push(box);ctx.font=`${index<4?800:650} ${font}px Inter,'Noto Sans TC',sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=PALETTE[(hash(word.text)+index)%PALETTE.length];ctx.globalAlpha=Math.min(1,.72+frequency*.28);ctx.fillText(word.text,box.x+box.w/2,box.y+box.h/2);
+    placed.push(box);ctx.font=`${index<4?750:600} ${font}px 'Noto Sans TC',Inter,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=PALETTE[(hash(word.text)+index)%PALETTE.length];ctx.globalAlpha=Math.min(.96,.74+frequency*.22);ctx.fillText(word.text,box.x+box.w/2,box.y+box.h/2);
   });
   ctx.globalAlpha=1;
 }
