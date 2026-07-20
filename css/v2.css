@@ -11,3 +11,5 @@
 /* ESG animated display lobby */
 
 .submit-success.is-wrong .success-check{background:var(--danger)}
+
+.ranking-list{display:grid;gap:10px;margin:16px 0}.ranking-item{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:10px;padding:12px;border:1px solid rgba(7,59,92,.14);border-radius:14px;background:#fff}.ranking-number{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#e9f5f3;font-weight:800}.ranking-actions{display:flex;gap:6px}.ranking-actions button{width:38px;height:38px;border:0;border-radius:10px;background:#eef3f5;font-size:18px}.ranking-actions button:disabled{opacity:.35}.progress .indeterminate{width:45%!important;animation:progress-slide 1.4s ease-in-out infinite}@keyframes progress-slide{0%{transform:translateX(-120%)}100%{transform:translateX(260%)}}
