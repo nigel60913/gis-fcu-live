@@ -30,9 +30,11 @@ const NOTES = {
 
 export function createDisplayAudio() {
   const VOLUME_KEY = "gisDisplayAudioVolume";
+  const MAX_OUTPUT_GAIN = 3.4;
   const savedVolume = Number.parseInt(localStorage.getItem(VOLUME_KEY), 10);
   let context;
   let master;
+  let limiter;
   let enabled = false;
   let volume = Number.isFinite(savedVolume)
     ? Math.min(100, Math.max(0, savedVolume))
@@ -74,7 +76,7 @@ export function createDisplayAudio() {
     enabled = !enabled;
     master.gain.cancelScheduledValues(context.currentTime);
     master.gain.setTargetAtTime(
-      enabled ? volume / 100 : 0,
+      enabled ? outputGain(volume) : 0,
       context.currentTime,
       0.08,
     );
@@ -98,7 +100,7 @@ export function createDisplayAudio() {
     if (master && context) {
       master.gain.cancelScheduledValues(context.currentTime);
       master.gain.setTargetAtTime(
-        enabled ? volume / 100 : 0,
+        enabled ? outputGain(volume) : 0,
         context.currentTime,
         0.05,
       );
@@ -109,8 +111,20 @@ export function createDisplayAudio() {
   function setup() {
     context = new (window.AudioContext || window.webkitAudioContext)();
     master = context.createGain();
+    limiter = context.createDynamicsCompressor();
     master.gain.value = 0;
-    master.connect(context.destination);
+    limiter.threshold.value = -10;
+    limiter.knee.value = 8;
+    limiter.ratio.value = 6;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.18;
+    master.connect(limiter);
+    limiter.connect(context.destination);
+  }
+
+  function outputGain(percent) {
+    if (percent <= 0) return 0;
+    return MAX_OUTPUT_GAIN * Math.pow(percent / 100, 1.75);
   }
 
   function sync(nextSession = {}) {
