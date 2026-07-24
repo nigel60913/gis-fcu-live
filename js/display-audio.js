@@ -25,12 +25,15 @@ const NOTES = {
   C5: 523.25,
   D5: 587.33,
   E5: 659.25,
+  F5: 698.46,
   G5: 783.99,
+  A5: 880,
 };
 
 export function createDisplayAudio() {
   const VOLUME_KEY = "gisDisplayAudioVolume";
-  const MAX_OUTPUT_GAIN = 3.4;
+  const MAX_OUTPUT_GAIN = 5.2;
+  const SOURCE_GAIN = 1.35;
   const savedVolume = Number.parseInt(localStorage.getItem(VOLUME_KEY), 10);
   let context;
   let master;
@@ -113,9 +116,9 @@ export function createDisplayAudio() {
     master = context.createGain();
     limiter = context.createDynamicsCompressor();
     master.gain.value = 0;
-    limiter.threshold.value = -10;
-    limiter.knee.value = 8;
-    limiter.ratio.value = 6;
+    limiter.threshold.value = -8;
+    limiter.knee.value = 6;
+    limiter.ratio.value = 10;
     limiter.attack.value = 0.003;
     limiter.release.value = 0.18;
     master.connect(limiter);
@@ -199,7 +202,7 @@ export function createDisplayAudio() {
     if (mode === "lottery")
       return { interval: 350, pattern: "lottery", remaining };
     if (mode === "results")
-      return { interval: 1200, pattern: "results", remaining };
+      return { interval: 520, pattern: "results", remaining };
     return { interval: 830, pattern: "lobby", remaining };
   }
 
@@ -230,9 +233,36 @@ export function createDisplayAudio() {
     } else if (pattern === "lottery") {
       const melody = ["C4", "E4", "G4", "C5", "G4", "E5"];
       tone(NOTES[melody[beat % melody.length]], now, 0.18, 0.055, "triangle");
-    } else if (pattern === "results" && beat % 4 === 0) {
-      tone(NOTES.C4, now, 1.5, 0.022, "sine");
-      tone(NOTES.G4, now + 0.08, 1.4, 0.018, "sine");
+    } else if (pattern === "results") {
+      const melody = [
+        "E4",
+        "G4",
+        "C5",
+        "G4",
+        "F4",
+        "A4",
+        "C5",
+        "A4",
+        "G4",
+        "B4",
+        "D5",
+        "B4",
+        "F4",
+        "G4",
+        "E4",
+        "D4",
+      ];
+      const roots = ["C3", "F3", "G3", "C3"];
+      const melodyNote = NOTES[melody[beat % melody.length]];
+      tone(melodyNote, now, 0.38, 0.07, "triangle");
+      tone(melodyNote / 2, now, 0.26, 0.025, "sine");
+      if (beat % 2 === 0) {
+        tone(NOTES[roots[Math.floor(beat / 4) % roots.length]], now, 0.42, 0.055, "triangle");
+        tone(NOTES.C5, now + 0.11, 0.08, 0.024, "square");
+      }
+      if (beat % 4 === 2) {
+        tone(NOTES.G4, now + 0.05, 0.12, 0.032, "sine");
+      }
     }
   }
 
@@ -243,7 +273,10 @@ export function createDisplayAudio() {
     oscillator.type = type;
     oscillator.frequency.setValueAtTime(frequency, start);
     gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.exponentialRampToValueAtTime(volume, start + 0.025);
+    gain.gain.exponentialRampToValueAtTime(
+      Math.min(0.22, volume * SOURCE_GAIN),
+      start + 0.025,
+    );
     gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
     oscillator.connect(gain);
     gain.connect(master);
