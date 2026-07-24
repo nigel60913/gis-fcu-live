@@ -6,6 +6,17 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function answerMatchesQuestionLimits(questionId) {
+      let question = get(/databases/$(database)/documents/questions/$(questionId)).data;
+      let value = request.resource.data.value;
+      return (question.type != 'multi'
+              || (value is list
+                  && value.size() <= question.get('maxSelections', 100)))
+             && (!(question.type in ['wordcloud', 'open'])
+                 || (value is string
+                     && value.size() <= question.get('wordLimit', 120)));
+    }
+
     match /questions/{questionId} {
       allow read: if true;
       allow write: if isSignedIn();
@@ -19,7 +30,8 @@ service cloud.firestore {
                                 && request.resource.data.clientId == responseId
                                 && request.resource.data.clientId.size() <= 64
                                 && request.resource.data.nickname is string
-                                && request.resource.data.nickname.size() <= 12;
+                                && request.resource.data.nickname.size() <= 12
+                                && answerMatchesQuestionLimits(questionId);
         allow delete: if isSignedIn();
       }
     }

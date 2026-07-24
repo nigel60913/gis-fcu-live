@@ -1,18 +1,315 @@
-import{db,doc,getDoc,setDoc,onSnapshot,serverTimestamp}from'./firebase.js';import{escapeHtml,getClientId,getNickname,setNickname}from'./utils.js';import{toast,bindNetworkStatus,friendlyError,setBusy}from'./ui.js';
-const stage=document.getElementById('stage'),tag=document.getElementById('stateTag'),sessionRef=doc(db,'session','current');let clientId=null,session={state:'idle'},question=null,response=null,unsubSession=null,unsubQuestion=null,submitting=false,audienceTimerTicker=null;const LOGIN_VERSION_KEY='gisfcu_login_version';bindNetworkStatus();
-function nameGate(message=''){tag.textContent='準備加入';stage.innerHTML=`<section class="aud-card aud-hero"><div class="orb">✦</div><span class="eyebrow">WELCOME TO ESG × MM</span><h1>嗨！怎麼稱呼你？</h1>${message?`<p class="notice">${escapeHtml(message)}</p>`:''}<p class="muted">例：空資處＿王小明</p><input id="nickname" maxlength="12" autocomplete="nickname" placeholder="輸入暱稱"><button id="join" class="button primary wide">加入互動</button></section>`;const input=document.getElementById('nickname'),join=()=>{if(!input.value.trim())return toast('請先輸入暱稱');setNickname(input.value);clientId=getClientId();listen()};document.getElementById('join').onclick=join;input.onkeydown=e=>{if(e.key==='Enter')join()};input.focus()}
-function listen(){if(!clientId)clientId=getClientId();unsubSession?.();unsubSession=onSnapshot(sessionRef,s=>{session=s.exists()?s.data():{state:'idle'};if(applyAudienceLoginReset(session))return;loadQuestion()},e=>renderError(e))}
-function applyAudienceLoginReset(sessionData){const remoteVersion=Number(sessionData.loginVersion||0),storedVersion=localStorage.getItem(LOGIN_VERSION_KEY),localVersion=Number(storedVersion||0),hasNickname=!!getNickname();if(storedVersion===null&&!hasNickname){localStorage.setItem(LOGIN_VERSION_KEY,String(remoteVersion));return false}if(remoteVersion===localVersion)return false;localStorage.removeItem('gisfcu_nickname');localStorage.removeItem('gisfcu_client_id');localStorage.setItem(LOGIN_VERSION_KEY,String(remoteVersion));clientId=null;response=null;question=null;submitting=false;unsubSession?.();unsubSession=null;unsubQuestion?.();unsubQuestion=null;clearAudienceTimer();nameGate('活動登入資料已更新，請重新輸入暱稱。');return true}
-async function loadQuestion(){unsubQuestion?.();question=null;response=null;if(!session.activeQuestionId)return renderWaiting();renderLoading();const ref=doc(db,'questions',session.activeQuestionId);unsubQuestion=onSnapshot(ref,async s=>{if(!s.exists())return renderWaiting();question={id:s.id,...s.data()};const r=await getDoc(doc(ref,'responses',clientId));response=r.exists()?r.data().value:null;render()},e=>renderError(e))}
-function clearAudienceTimer(){clearInterval(audienceTimerTicker);audienceTimerTicker=null}
-function renderLoading(){clearAudienceTimer();stage.innerHTML='<div class="aud-card aud-hero"><span class="spinner"></span><h2>正在載入題目</h2><p class="muted">馬上就好</p></div>'}
-function renderWaiting(){clearAudienceTimer();tag.textContent='等待主持人';stage.innerHTML=`<section class="aud-card aud-hero"><div class="orb">⌁</div><span class="eyebrow">YOU’RE IN</span><h1>${escapeHtml(getNickname())}，準備好了！</h1><p class="muted">主持人即將開始下一題，畫面會自動更新。</p><div class="progress"><i style="width:34%"></i></div></section>`}
-function renderError(error){clearAudienceTimer();stage.innerHTML=`<section class="aud-card aud-hero"><div class="orb">!</div><h1>連線暫時中斷</h1><p class="muted">${friendlyError(error)}</p><button class="button primary" onclick="location.reload()">重新連線</button></section>`}
-function render(){clearAudienceTimer();if(!question)return;if(response!==null)return renderSuccess();const closed=session.state!=='live';tag.textContent=closed?'投票已關閉':'作答中';if(closed){stage.innerHTML='<section class="aud-card aud-hero"><div class="orb">◷</div><h1>本題已結束</h1><p class="muted">請看大螢幕上的即時結果。</p></section>';return}let body='';const options=question.options||[];if(['single','quiz','yesno'].includes(question.type)){const opts=question.type==='yesno'&&options.length<2?['是','否']:options;body=`<div class="answer-list">${opts.map((o,i)=>`<button class="answer" data-value="${i}"><b>${String.fromCharCode(65+i)}</b>　${escapeHtml(o)}</button>`).join('')}</div>`}else if(question.type==='multi')body=`<div class="answer-list">${options.map((o,i)=>`<button class="answer" data-multi="${i}">${escapeHtml(o)}</button>`).join('')}</div>`;else if(question.type==='ranking')body=`<p class="ranking-hint">用「上移／下移」調整順序，最上方代表最想參加。</p><div class="ranking-list">${options.map((o,i)=>rankingItem(o,i,options.length)).join('')}</div>`;else if(question.type==='emoji')body=`<div class="emoji-grid">${['😍','😊','😐','🤔','😢'].map((e,i)=>`<button data-value="${i}">${e}</button>`).join('')}</div>`;else if(question.type==='rating')body=`<div class="rating">${[1,2,3,4,5].map(n=>`<button data-value="${n}">${n}</button>`).join('')}</div>`;else if(question.type==='slider')body=`<div class="slider-output" id="sliderOut">${question.min??0}</div><input id="slider" type="range" min="${question.min??0}" max="${question.max??100}" value="${question.min??0}">`;else body=`<textarea id="textAnswer" rows="4" maxlength="120" placeholder="輸入你的想法…"></textarea>`;stage.innerHTML=`<section class="aud-card"><span class="eyebrow">${escapeHtml(question.part||'ESG × MM')}</span><h1>${escapeHtml(question.title)}</h1><div class="progress"><i style="width:${session.progress||50}%"></i></div>${timerMarkup()}${body}<button id="submit" class="button primary wide">送出答案</button></section>`;wireAnswers();syncAudienceTimer()}
+import {
+  db,
+  doc,
+  getDoc,
+  setDoc,
+  onSnapshot,
+  serverTimestamp,
+} from "./firebase.js";
+import { escapeHtml, getClientId, getNickname, setNickname } from "./utils.js";
+import { toast, bindNetworkStatus, friendlyError, setBusy } from "./ui.js";
+const stage = document.getElementById("stage"),
+  tag = document.getElementById("stateTag"),
+  sessionRef = doc(db, "session", "current");
+let clientId = null,
+  session = { state: "idle" },
+  question = null,
+  response = null,
+  unsubSession = null,
+  unsubQuestion = null,
+  submitting = false,
+  audienceTimerTicker = null;
+const LOGIN_VERSION_KEY = "gisfcu_login_version";
+bindNetworkStatus();
+function nameGate(message = "") {
+  tag.textContent = "準備加入";
+  stage.innerHTML = `<section class="aud-card aud-hero"><div class="orb">✦</div><span class="eyebrow">WELCOME TO ESG × MM</span><h1>嗨！怎麼稱呼你？</h1>${message ? `<p class="notice">${escapeHtml(message)}</p>` : ""}<p class="muted">例：空資處＿王小明</p><input id="nickname" maxlength="12" autocomplete="nickname" placeholder="輸入暱稱"><button id="join" class="button primary wide">加入互動</button></section>`;
+  const input = document.getElementById("nickname"),
+    join = () => {
+      if (!input.value.trim()) return toast("請先輸入暱稱");
+      setNickname(input.value);
+      clientId = getClientId();
+      listen();
+    };
+  document.getElementById("join").onclick = join;
+  input.onkeydown = (e) => {
+    if (e.key === "Enter") join();
+  };
+  input.focus();
+}
+function listen() {
+  if (!clientId) clientId = getClientId();
+  unsubSession?.();
+  unsubSession = onSnapshot(
+    sessionRef,
+    (s) => {
+      session = s.exists() ? s.data() : { state: "idle" };
+      if (applyAudienceLoginReset(session)) return;
+      loadQuestion();
+    },
+    (e) => renderError(e),
+  );
+}
+function applyAudienceLoginReset(sessionData) {
+  const remoteVersion = Number(sessionData.loginVersion || 0),
+    storedVersion = localStorage.getItem(LOGIN_VERSION_KEY),
+    localVersion = Number(storedVersion || 0),
+    hasNickname = !!getNickname();
+  if (storedVersion === null && !hasNickname) {
+    localStorage.setItem(LOGIN_VERSION_KEY, String(remoteVersion));
+    return false;
+  }
+  if (remoteVersion === localVersion) return false;
+  localStorage.removeItem("gisfcu_nickname");
+  localStorage.removeItem("gisfcu_client_id");
+  localStorage.setItem(LOGIN_VERSION_KEY, String(remoteVersion));
+  clientId = null;
+  response = null;
+  question = null;
+  submitting = false;
+  unsubSession?.();
+  unsubSession = null;
+  unsubQuestion?.();
+  unsubQuestion = null;
+  clearAudienceTimer();
+  nameGate("活動登入資料已更新，請重新輸入暱稱。");
+  return true;
+}
+async function loadQuestion() {
+  unsubQuestion?.();
+  question = null;
+  response = null;
+  if (!session.activeQuestionId) return renderWaiting();
+  renderLoading();
+  const ref = doc(db, "questions", session.activeQuestionId);
+  unsubQuestion = onSnapshot(
+    ref,
+    async (s) => {
+      if (!s.exists()) return renderWaiting();
+      question = { id: s.id, ...s.data() };
+      const r = await getDoc(doc(ref, "responses", clientId));
+      response = r.exists() ? r.data().value : null;
+      render();
+    },
+    (e) => renderError(e),
+  );
+}
+function clearAudienceTimer() {
+  clearInterval(audienceTimerTicker);
+  audienceTimerTicker = null;
+}
+function renderLoading() {
+  clearAudienceTimer();
+  stage.innerHTML =
+    '<div class="aud-card aud-hero"><span class="spinner"></span><h2>正在載入題目</h2><p class="muted">馬上就好</p></div>';
+}
+function renderWaiting() {
+  clearAudienceTimer();
+  tag.textContent = "等待主持人";
+  stage.innerHTML = `<section class="aud-card aud-hero"><div class="orb">⌁</div><span class="eyebrow">YOU’RE IN</span><h1>${escapeHtml(getNickname())}，準備好了！</h1><p class="muted">主持人即將開始下一題，畫面會自動更新。</p><div class="progress"><i style="width:34%"></i></div></section>`;
+}
+function renderError(error) {
+  clearAudienceTimer();
+  stage.innerHTML = `<section class="aud-card aud-hero"><div class="orb">!</div><h1>連線暫時中斷</h1><p class="muted">${friendlyError(error)}</p><button class="button primary" onclick="location.reload()">重新連線</button></section>`;
+}
+function render() {
+  clearAudienceTimer();
+  if (!question) return;
+  if (response !== null) return renderSuccess();
+  const closed = session.state !== "live";
+  tag.textContent = closed ? "投票已關閉" : "作答中";
+  if (closed) {
+    stage.innerHTML =
+      '<section class="aud-card aud-hero"><div class="orb">◷</div><h1>本題已結束</h1><p class="muted">請看大螢幕上的即時結果。</p></section>';
+    return;
+  }
+  let body = "";
+  const options = question.options || [];
+  if (["single", "quiz", "yesno"].includes(question.type)) {
+    const opts =
+      question.type === "yesno" && options.length < 2 ? ["是", "否"] : options;
+    body = `<div class="answer-list">${opts.map((o, i) => `<button class="answer" data-value="${i}"><b>${String.fromCharCode(65 + i)}</b>　${escapeHtml(o)}</button>`).join("")}</div>`;
+  } else if (question.type === "multi")
+    body = `<p class="answer-limit">最多選擇 ${Math.min(Number(question.maxSelections) || options.length, options.length)} 項</p><div class="answer-list">${options.map((o, i) => `<button class="answer" data-multi="${i}">${escapeHtml(o)}</button>`).join("")}</div>`;
+  else if (question.type === "ranking")
+    body = `<p class="ranking-hint">用「上移／下移」調整順序，最上方代表最想參加。</p><div class="ranking-list">${options.map((o, i) => rankingItem(o, i, options.length)).join("")}</div>`;
+  else if (question.type === "emoji")
+    body = `<div class="emoji-grid">${["😍", "😊", "😐", "🤔", "😢"].map((e, i) => `<button data-value="${i}">${e}</button>`).join("")}</div>`;
+  else if (question.type === "rating")
+    body = `<div class="rating">${[1, 2, 3, 4, 5].map((n) => `<button data-value="${n}">${n}</button>`).join("")}</div>`;
+  else if (question.type === "slider")
+    body = `<div class="slider-output" id="sliderOut">${question.min ?? 0}</div><input id="slider" type="range" min="${question.min ?? 0}" max="${question.max ?? 100}" value="${question.min ?? 0}">`;
+  else {
+    const wordLimit = Math.max(
+      1,
+      Math.min(120, Number(question.wordLimit) || 120),
+    );
+    body = `<textarea id="textAnswer" rows="4" maxlength="${wordLimit}" placeholder="輸入你的想法…"></textarea><div class="text-counter"><span id="textCount">0</span> / ${wordLimit} 字</div>`;
+  }
+  stage.innerHTML = `<section class="aud-card"><span class="eyebrow">${escapeHtml(question.part || "ESG × MM")}</span><h1>${escapeHtml(question.title)}</h1><div class="progress"><i style="width:${session.progress || 50}%"></i></div>${timerMarkup()}${body}<button id="submit" class="button primary wide">送出答案</button></section>`;
+  wireAnswers();
+  syncAudienceTimer();
+}
 
-function timerMarkup(){return Number(session.timerEndsAt)>Date.now()?`<div id="audienceTimer" class="audience-timer"><strong id="audienceTimerValue">--</strong><span>秒後截止</span></div>`:''}
-function syncAudienceTimer(){clearAudienceTimer();const timer=document.getElementById('audienceTimer');if(!timer)return;const update=()=>{const left=Math.max(0,Math.ceil((Number(session.timerEndsAt)-Date.now())/1000));const value=document.getElementById('audienceTimerValue');if(value)value.textContent=left;timer.classList.toggle('urgent',left<=10);if(left<=0){clearAudienceTimer();document.querySelectorAll('.answer,.emoji-grid button,.rating button,[data-multi],[data-rank-move],#slider,#textAnswer,#submit').forEach(el=>el.disabled=true);const submit=document.getElementById('submit');if(submit)submit.textContent='本題作答時間已結束';tag.textContent='作答時間已結束'}};update();audienceTimerTicker=setInterval(update,250)}
-function rankingItem(option,index,total){return`<article class="ranking-item" data-rank-index="${index}"><span class="ranking-position">${index+1}</span><strong>${escapeHtml(option)}</strong><div class="ranking-actions"><button type="button" data-rank-move="up" aria-label="上移" ${index===0?'disabled':''}>↑</button><button type="button" data-rank-move="down" aria-label="下移" ${index===total-1?'disabled':''}>↓</button></div></article>`}
-function wireAnswers(){let value=null;document.querySelectorAll('[data-value]').forEach(el=>el.onclick=()=>{document.querySelectorAll('[data-value]').forEach(x=>x.classList.remove('selected'));el.classList.add('selected');value=Number(el.dataset.value)});const selected=new Set;document.querySelectorAll('[data-multi]').forEach(el=>el.onclick=()=>{const n=Number(el.dataset.multi);selected.has(n)?selected.delete(n):selected.add(n);el.classList.toggle('selected');value=[...selected]});const rankingList=document.querySelector('.ranking-list');if(rankingList){value=[...(question.options||[]).keys()];rankingList.onclick=e=>{const button=e.target.closest('[data-rank-move]');if(!button)return;const item=button.closest('[data-rank-index]'),from=Number(item.dataset.rankIndex),to=button.dataset.rankMove==='up'?from-1:from+1;if(to<0||to>=value.length)return;[value[from],value[to]]=[value[to],value[from]];rankingList.innerHTML=value.map((optionIndex,index)=>rankingItem((question.options||[])[optionIndex],index,value.length)).join('')}}const slider=document.getElementById('slider');if(slider){value=Number(slider.value);slider.oninput=()=>{value=Number(slider.value);document.getElementById('sliderOut').textContent=value}}document.getElementById('submit').onclick=async e=>{if(submitting)return;const text=document.getElementById('textAnswer');if(text)value=question.type==='wordcloud'?text.value.trim().split(/[,，\n]/).map(x=>x.trim()).filter(Boolean):text.value.trim();if(value===null||value===''||(Array.isArray(value)&&!value.length))return toast('請先完成作答');submitting=true;setBusy(e.currentTarget,true,'送出中…');try{await setDoc(doc(db,'questions',question.id,'responses',clientId),{value,clientId,nickname:getNickname(),createdAt:serverTimestamp()});response=value;renderSuccess()}catch(err){toast(friendlyError(err));setBusy(e.currentTarget,false)}finally{submitting=false}}}
-function renderSuccess(){clearAudienceTimer();const showResult=session.state==='closed'&&question?.revealMode==='correctness'&&Number.isInteger(question.correctIndex),isCorrect=showResult&&response===question.correctIndex,icon=showResult?(isCorrect?'✓':'×'):'✓',title=showResult?(isCorrect?'答對了！':'這題答錯了'):'收到你的答案！',detail=showResult?(isCorrect?'太棒了，繼續保持！':`正確答案：${escapeHtml((question.options||[])[question.correctIndex]||'')}`):'結果會即時出現在大螢幕上。';tag.textContent=showResult?(isCorrect?'答對':'答錯'):'已送出';stage.innerHTML=`<section class="aud-card submit-success ${showResult&&!isCorrect?'is-wrong':''}"><div><div class="success-check">${icon}</div><h1>${title}</h1><p class="muted">${detail}</p></div></section>`}
-if(getNickname()){clientId=getClientId();listen()}else nameGate();
+function timerMarkup() {
+  return Number(session.timerEndsAt) > Date.now()
+    ? `<div id="audienceTimer" class="audience-timer"><strong id="audienceTimerValue">--</strong><span>秒後截止</span></div>`
+    : "";
+}
+function syncAudienceTimer() {
+  clearAudienceTimer();
+  const timer = document.getElementById("audienceTimer");
+  if (!timer) return;
+  const update = () => {
+    const left = Math.max(
+      0,
+      Math.ceil((Number(session.timerEndsAt) - Date.now()) / 1000),
+    );
+    const value = document.getElementById("audienceTimerValue");
+    if (value) value.textContent = left;
+    timer.classList.toggle("urgent", left <= 10);
+    if (left <= 0) {
+      clearAudienceTimer();
+      document
+        .querySelectorAll(
+          ".answer,.emoji-grid button,.rating button,[data-multi],[data-rank-move],#slider,#textAnswer,#submit",
+        )
+        .forEach((el) => (el.disabled = true));
+      const submit = document.getElementById("submit");
+      if (submit) submit.textContent = "本題作答時間已結束";
+      tag.textContent = "作答時間已結束";
+    }
+  };
+  update();
+  audienceTimerTicker = setInterval(update, 250);
+}
+function rankingItem(option, index, total) {
+  return `<article class="ranking-item" data-rank-index="${index}"><span class="ranking-position">${index + 1}</span><strong>${escapeHtml(option)}</strong><div class="ranking-actions"><button type="button" data-rank-move="up" aria-label="上移" ${index === 0 ? "disabled" : ""}>↑</button><button type="button" data-rank-move="down" aria-label="下移" ${index === total - 1 ? "disabled" : ""}>↓</button></div></article>`;
+}
+function wireAnswers() {
+  let value = null;
+  document.querySelectorAll("[data-value]").forEach(
+    (el) =>
+      (el.onclick = () => {
+        document
+          .querySelectorAll("[data-value]")
+          .forEach((x) => x.classList.remove("selected"));
+        el.classList.add("selected");
+        value = Number(el.dataset.value);
+      }),
+  );
+  const selected = new Set();
+  const maxSelections = Math.max(
+    1,
+    Math.min(
+      Number(question.maxSelections) || (question.options || []).length,
+      (question.options || []).length,
+    ),
+  );
+  document.querySelectorAll("[data-multi]").forEach(
+    (el) =>
+      (el.onclick = () => {
+        const n = Number(el.dataset.multi);
+        if (!selected.has(n) && selected.size >= maxSelections)
+          return toast(`本題最多可選 ${maxSelections} 項`);
+        selected.has(n) ? selected.delete(n) : selected.add(n);
+        el.classList.toggle("selected");
+        value = [...selected];
+      }),
+  );
+  const textAnswer = document.getElementById("textAnswer"),
+    textCount = document.getElementById("textCount");
+  if (textAnswer && textCount)
+    textAnswer.oninput = () => {
+      textCount.textContent = textAnswer.value.length;
+    };
+  const rankingList = document.querySelector(".ranking-list");
+  if (rankingList) {
+    value = [...(question.options || []).keys()];
+    rankingList.onclick = (e) => {
+      const button = e.target.closest("[data-rank-move]");
+      if (!button) return;
+      const item = button.closest("[data-rank-index]"),
+        from = Number(item.dataset.rankIndex),
+        to = button.dataset.rankMove === "up" ? from - 1 : from + 1;
+      if (to < 0 || to >= value.length) return;
+      [value[from], value[to]] = [value[to], value[from]];
+      rankingList.innerHTML = value
+        .map((optionIndex, index) =>
+          rankingItem(
+            (question.options || [])[optionIndex],
+            index,
+            value.length,
+          ),
+        )
+        .join("");
+    };
+  }
+  const slider = document.getElementById("slider");
+  if (slider) {
+    value = Number(slider.value);
+    slider.oninput = () => {
+      value = Number(slider.value);
+      document.getElementById("sliderOut").textContent = value;
+    };
+  }
+  document.getElementById("submit").onclick = async (e) => {
+    if (submitting) return;
+    const text = document.getElementById("textAnswer");
+    if (text) value = text.value.trim();
+    if (
+      value === null ||
+      value === "" ||
+      (Array.isArray(value) && !value.length)
+    )
+      return toast("請先完成作答");
+    if (
+      question.type === "multi" &&
+      Array.isArray(value) &&
+      value.length > maxSelections
+    )
+      return toast(`本題最多可選 ${maxSelections} 項`);
+    submitting = true;
+    setBusy(e.currentTarget, true, "送出中…");
+    try {
+      await setDoc(doc(db, "questions", question.id, "responses", clientId), {
+        value,
+        clientId,
+        nickname: getNickname(),
+        createdAt: serverTimestamp(),
+      });
+      response = value;
+      renderSuccess();
+    } catch (err) {
+      toast(friendlyError(err));
+      setBusy(e.currentTarget, false);
+    } finally {
+      submitting = false;
+    }
+  };
+}
+function renderSuccess() {
+  clearAudienceTimer();
+  const showResult =
+      session.state === "closed" &&
+      question?.revealMode === "correctness" &&
+      Number.isInteger(question.correctIndex),
+    isCorrect = showResult && response === question.correctIndex,
+    icon = showResult ? (isCorrect ? "✓" : "×") : "✓",
+    title = showResult
+      ? isCorrect
+        ? "答對了！"
+        : "這題答錯了"
+      : "收到你的答案！",
+    detail = showResult
+      ? isCorrect
+        ? "太棒了，繼續保持！"
+        : `正確答案：${escapeHtml((question.options || [])[question.correctIndex] || "")}`
+      : "結果會即時出現在大螢幕上。";
+  tag.textContent = showResult ? (isCorrect ? "答對" : "答錯") : "已送出";
+  stage.innerHTML = `<section class="aud-card submit-success ${showResult && !isCorrect ? "is-wrong" : ""}"><div><div class="success-check">${icon}</div><h1>${title}</h1><p class="muted">${detail}</p></div></section>`;
+}
+if (getNickname()) {
+  clientId = getClientId();
+  listen();
+} else nameGate();
