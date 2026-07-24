@@ -15,32 +15,22 @@ export function tallyWords(values){
 
 // Deterministic spiral placement keeps existing words stable when new votes arrive.
 export function renderWordCloud(canvas,words){
-  const rect=canvas.getBoundingClientRect(),width=Math.max(320,rect.width),height=Math.max(260,rect.height),dpr=devicePixelRatio||1;
-  canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);
-  const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,height);
+  const rect=canvas.getBoundingClientRect(),width=Math.max(320,rect.width),height=Math.max(260,rect.height),dpr=Math.max(1,window.devicePixelRatio||1);
+  canvas.style.width=`${width}px`;canvas.style.height=`${height}px`;canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);
+  const ctx=canvas.getContext('2d');ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.setTransform(dpr,0,0,dpr,0,0);
   if(!words.length)return;
-  const max=words[0].count,min=words.at(-1).count,maxFont=Math.min(96,width*.105,height*.17),minFont=Math.max(17,Math.min(width,height)*.029),placed=[];
-  words.slice(0,80).forEach((word,index)=>{
-    const frequency=max===min?Math.max(.18,1-index/Math.max(words.length,2)):(word.count-min)/(max-min);
-    let font=Math.round(minFont+(maxFont-minFont)*Math.pow(frequency,.72));
-    let box=null;
+  const shown=words.slice(0,80),max=shown[0].count,min=shown.at(-1).count,maxFont=Math.min(160,width*.17,height*.25),minFont=Math.max(18,Math.min(width,height)*.03),placed=[];
+  shown.forEach((word,index)=>{
+    const normalized=max===min?1:(word.count-min)/(max-min);let font=Math.round(minFont+(maxFont-minFont)*Math.pow(normalized,.55)),box=null;
     while(font>=minFont&&!box){
-      ctx.font=`${index<4?750:600} ${font}px 'Noto Sans TC',Inter,sans-serif`;
-      const textWidth=ctx.measureText(word.text).width,pad=Math.max(5,font*.09),w=textWidth+pad*2,h=font*1.08+pad*2;
-      const seed=hash(word.text),start=(seed%360)*Math.PI/180;
-      for(let step=0;step<4200;step+=1){
-        const angle=start+step*.19,radius=2.35*Math.sqrt(step),x=width/2+Math.cos(angle)*radius*1.28-w/2,y=height/2+Math.sin(angle)*radius*.82-h/2;
-        const candidate={x,y,w,h};
-        if(x<4||y<4||x+w>width-4||y+h>height-4)continue;
-        if(!placed.some(other=>overlaps(candidate,other))){box=candidate;break}
-      }
+      ctx.font=`${index<5?800:650} ${font}px 'Noto Sans TC',Inter,sans-serif`;const metrics=ctx.measureText(word.text),pad=Math.max(4,font*.06),w=metrics.width+pad*2,h=font*1.05+pad*2,start=(hash(word.text)%360)*Math.PI/180;
+      for(let step=0;step<5200;step++){const angle=start+step*.21,radius=2.15*Math.sqrt(step),x=width/2+Math.cos(angle)*radius*1.08-w/2,y=height/2+Math.sin(angle)*radius*.76-h/2,candidate={x,y,w,h};if(x<4||y<4||x+w>width-4||y+h>height-4)continue;if(!insideCloudMask(candidate,width,height))continue;if(!placed.some(other=>overlaps(candidate,other))){box=candidate;break}}
       if(!box)font-=2;
     }
-    if(!box)return;
-    placed.push(box);ctx.font=`${index<4?750:600} ${font}px 'Noto Sans TC',Inter,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=PALETTE[(hash(word.text)+index)%PALETTE.length];ctx.globalAlpha=Math.min(.96,.74+frequency*.22);ctx.fillText(word.text,box.x+box.w/2,box.y+box.h/2);
-  });
-  ctx.globalAlpha=1;
+    if(!box)return;placed.push(box);ctx.font=`${index<5?800:650} ${font}px 'Noto Sans TC',Inter,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=PALETTE[(hash(word.text)+index)%PALETTE.length];ctx.globalAlpha=.96;ctx.fillText(word.text,box.x+box.w/2,box.y+box.h/2);
+  });ctx.globalAlpha=1;
 }
+function insideCloudMask(box,width,height){const cx=box.x+box.w/2,cy=box.y+box.h/2,nx=(cx-width/2)/(width*.46),ny=(cy-height/2)/(height*.42);return nx*nx+ny*ny<=1}
 
 function overlaps(a,b){const gap=3;return a.x<aRight(b)+gap&&aRight(a)+gap>b.x&&a.y<aBottom(b)+gap&&aBottom(a)+gap>b.y}
 const aRight=box=>box.x+box.w,aBottom=box=>box.y+box.h;
