@@ -1,0 +1,226 @@
+const MODE_LABELS = {
+  lobby: "大廳音樂",
+  waiting: "等待開始",
+  countdown: "答題倒數",
+  locked: "等待公布",
+  results: "結果音效",
+  lottery: "抽獎音效",
+};
+
+const NOTES = {
+  C3: 130.81,
+  D3: 146.83,
+  E3: 164.81,
+  F3: 174.61,
+  G3: 196,
+  A3: 220,
+  B3: 246.94,
+  C4: 261.63,
+  D4: 293.66,
+  E4: 329.63,
+  F4: 349.23,
+  G4: 392,
+  A4: 440,
+  B4: 493.88,
+  C5: 523.25,
+  D5: 587.33,
+  E5: 659.25,
+  G5: 783.99,
+};
+
+export function createDisplayAudio() {
+  let context;
+  let master;
+  let enabled = false;
+  let mode = "lobby";
+  let session = {};
+  let loopTimer;
+  let beat = 0;
+  let lastRevealMode = "";
+  const button = makeButton();
+
+  function makeButton() {
+    const control = document.createElement("button");
+    control.type = "button";
+    control.className = "display-audio-control";
+    control.setAttribute("aria-pressed", "false");
+    control.innerHTML =
+      '<span class="audio-icon" aria-hidden="true">♪</span><span class="audio-label">開啟音效</span>';
+    control.onclick = toggle;
+    document.body.append(control);
+    return control;
+  }
+
+  async function toggle() {
+    if (!context) setup();
+    if (context.state === "suspended") await context.resume();
+    enabled = !enabled;
+    master.gain.cancelScheduledValues(context.currentTime);
+    master.gain.setTargetAtTime(enabled ? 0.52 : 0, context.currentTime, 0.08);
+    button.classList.toggle("is-on", enabled);
+    button.setAttribute("aria-pressed", String(enabled));
+    updateButton();
+    if (enabled) {
+      beat = 0;
+      startLoop();
+      playWelcome();
+    } else {
+      stopLoop();
+    }
+  }
+
+  function setup() {
+    context = new (window.AudioContext || window.webkitAudioContext)();
+    master = context.createGain();
+    master.gain.value = 0;
+    master.connect(context.destination);
+  }
+
+  function sync(nextSession = {}) {
+    session = nextSession;
+    const nextMode = getMode(nextSession);
+    if (nextMode === mode) {
+      updateButton();
+      return;
+    }
+    const previousMode = mode;
+    mode = nextMode;
+    if (mode !== "results") lastRevealMode = "";
+    beat = 0;
+    updateButton();
+    if (!enabled || !context) return;
+    if (mode === "results" && previousMode !== "results") playReveal();
+    if (mode === "lottery" && previousMode !== "lottery") playLottery();
+    startLoop();
+  }
+
+  function getMode(value) {
+    if (!value.activeQuestionId || value.state === "lobby") return "lobby";
+    if (value.state === "live") return "countdown";
+    if (value.state === "locked") return "locked";
+    if (value.state === "closed") return "results";
+    if (value.state === "lottery") return "lottery";
+    return "waiting";
+  }
+
+  function updateButton() {
+    const label = button.querySelector(".audio-label");
+    label.textContent = enabled
+      ? `${MODE_LABELS[mode] || "活動音效"}・開`
+      : "開啟音效";
+    button.title = enabled ? "點擊靜音" : "瀏覽器需要點擊後才能播放音效";
+  }
+
+  function startLoop() {
+    stopLoop();
+    scheduleBeat();
+  }
+
+  function stopLoop() {
+    clearTimeout(loopTimer);
+  }
+
+  function scheduleBeat() {
+    if (!enabled || !context) return;
+    const settings = modeSettings();
+    playBeat(settings);
+    beat += 1;
+    loopTimer = setTimeout(scheduleBeat, settings.interval);
+  }
+
+  function modeSettings() {
+    const remaining = Math.max(
+      0,
+      Math.ceil((Number(session.timerEndsAt) - Date.now()) / 1000),
+    );
+    if (mode === "countdown") {
+      if (remaining <= 0)
+        return { interval: 1200, pattern: "expired", remaining };
+      if (remaining <= 10) return { interval: 430, pattern: "urgent", remaining };
+      return { interval: 600, pattern: "countdown", remaining };
+    }
+    if (mode === "waiting")
+      return { interval: 780, pattern: "waiting", remaining };
+    if (mode === "locked")
+      return { interval: 900, pattern: "locked", remaining };
+    if (mode === "lottery")
+      return { interval: 350, pattern: "lottery", remaining };
+    if (mode === "results")
+      return { interval: 1200, pattern: "results", remaining };
+    return { interval: 830, pattern: "lobby", remaining };
+  }
+
+  function playBeat({ pattern, remaining }) {
+    const now = context.currentTime + 0.02;
+    if (pattern === "lobby") {
+      const melody = ["C4", "E4", "G4", "B4", "A4", "G4", "E4", "D4"];
+      tone(NOTES[melody[beat % melody.length]], now, 0.62, 0.055, "sine");
+      if (beat % 4 === 0) {
+        const roots = ["C3", "F3", "A3", "G3"];
+        tone(NOTES[roots[(beat / 4) % roots.length]], now, 2.8, 0.035, "triangle");
+      }
+    } else if (pattern === "waiting") {
+      const melody = ["D4", "A4", "F4", "A4", "E4", "A4", "G4", "A4"];
+      tone(NOTES[melody[beat % melody.length]], now, 0.42, 0.045, "triangle");
+      if (beat % 4 === 0) tone(NOTES.D3, now, 1.8, 0.025, "sine");
+    } else if (pattern === "countdown") {
+      const melody = ["C4", "G4", "E4", "G4", "D4", "A4", "F4", "A4"];
+      tone(NOTES[melody[beat % melody.length]], now, 0.25, 0.06, "triangle");
+      tone(NOTES.C3, now, 0.12, 0.025, "sine");
+    } else if (pattern === "urgent") {
+      tone(remaining % 2 ? NOTES.C5 : NOTES.G5, now, 0.1, 0.09, "square");
+      tone(NOTES.C3, now, 0.09, 0.035, "sine");
+    } else if (pattern === "locked") {
+      const melody = ["D4", "F4", "A4", "C5"];
+      tone(NOTES[melody[beat % melody.length]], now, 0.5, 0.035, "sine");
+      if (beat % 4 === 0) tone(NOTES.D3, now, 2.2, 0.02, "triangle");
+    } else if (pattern === "lottery") {
+      const melody = ["C4", "E4", "G4", "C5", "G4", "E5"];
+      tone(NOTES[melody[beat % melody.length]], now, 0.18, 0.055, "triangle");
+    } else if (pattern === "results" && beat % 4 === 0) {
+      tone(NOTES.C4, now, 1.5, 0.022, "sine");
+      tone(NOTES.G4, now + 0.08, 1.4, 0.018, "sine");
+    }
+  }
+
+  function tone(frequency, start, duration, volume, type = "sine") {
+    if (!enabled || !context) return;
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(volume, start + 0.025);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    oscillator.connect(gain);
+    gain.connect(master);
+    oscillator.start(start);
+    oscillator.stop(start + duration + 0.04);
+  }
+
+  function playWelcome() {
+    const now = context.currentTime + 0.04;
+    [NOTES.C4, NOTES.E4, NOTES.G4].forEach((note, index) =>
+      tone(note, now + index * 0.09, 0.55, 0.05, "sine"),
+    );
+  }
+
+  function playReveal() {
+    const key = `${session.activeQuestionId || ""}:${session.state}`;
+    if (key === lastRevealMode) return;
+    lastRevealMode = key;
+    const now = context.currentTime + 0.04;
+    [NOTES.C4, NOTES.E4, NOTES.G4, NOTES.C5].forEach((note, index) =>
+      tone(note, now + index * 0.11, 0.72, 0.075, "triangle"),
+    );
+  }
+
+  function playLottery() {
+    const now = context.currentTime + 0.03;
+    [NOTES.C4, NOTES.E4, NOTES.G4, NOTES.C5, NOTES.E5].forEach((note, index) =>
+      tone(note, now + index * 0.07, 0.36, 0.06, "triangle"),
+    );
+  }
+
+  return { sync };
+}

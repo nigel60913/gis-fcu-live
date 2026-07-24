@@ -1725,6 +1725,59 @@ textarea {
     animation: none !important;
   }
 }
+
+.display-audio-control {
+  position: fixed;
+  z-index: 1000;
+  right: clamp(16px, 2vw, 30px);
+  bottom: clamp(16px, 2vw, 30px);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 15px 10px 10px;
+  border: 1px solid rgba(7, 59, 92, 0.12);
+  border-radius: 999px;
+  color: var(--navy);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 12px 35px rgba(7, 59, 92, 0.14);
+  backdrop-filter: blur(15px);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+.display-audio-control:hover {
+  transform: translateY(-2px);
+}
+.display-audio-control .audio-icon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  background: #83949b;
+}
+.display-audio-control.is-on .audio-icon {
+  background: linear-gradient(135deg, #6d9b0d, var(--lime));
+  animation: audioPulse 1.6s ease-in-out infinite;
+}
+@keyframes audioPulse {
+  50% {
+    box-shadow: 0 0 0 7px rgba(184, 215, 45, 0.16);
+  }
+}
+@media (max-width: 600px) {
+  .display-audio-control .audio-label {
+    display: none;
+  }
+  .display-audio-control {
+    padding: 8px;
+  }
+}
 .submit-success.is-wrong .success-check {
   background: var(--danger);
 }

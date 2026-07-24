@@ -2,7 +2,9 @@ import { db, doc, collection, onSnapshot } from "./firebase.js";
 import { escapeHtml, formatType } from "./utils.js";
 import { bindNetworkStatus } from "./ui.js";
 import { renderWordCloud, tallyWords } from "./wordcloud.js";
+import { createDisplayAudio } from "./display-audio.js";
 const screen = document.getElementById("screen"),
+  displayTheme = document.getElementById("displayTheme"),
   sessionRef = doc(db, "session", "current");
 let session = { state: "idle" },
   question = null,
@@ -12,8 +14,10 @@ let session = { state: "idle" },
   wordCloudResize,
   timerTicker;
 bindNetworkStatus();
+const displayAudio = createDisplayAudio();
 onSnapshot(sessionRef, (s) => {
   session = s.exists() ? s.data() : { state: "idle" };
+  displayAudio.sync(session);
   load();
 });
 function load() {
@@ -40,6 +44,8 @@ function audienceUrl() {
   return location.href.replace(/display\.html.*$/, "index.html");
 }
 function idle() {
+  displayTheme.disabled = true;
+  displayAudio.sync({ state: "lobby", activeQuestionId: null });
   screen.innerHTML = `<section class="esg-lobby"><div class="lobby-aurora" aria-hidden="true"><i></i><i></i><i></i></div><div class="lobby-grid" aria-hidden="true"></div><div class="lobby-orbit" aria-hidden="true"><i></i><i></i><i></i></div><header class="lobby-head"><div class="display-brand lobby-brand"><img class="brand-logo" src="assets/logo.png" alt="GIS.FCU"><span>ESG × MM<small>LIVE ENGAGEMENT</small></span></div><div class="lobby-status"><i></i><span>等待開始</span></div></header><div class="lobby-content"><div class="lobby-copy"><span class="lobby-kicker">TOGETHER FOR A BETTER FUTURE</span><h1>聽見聲音<br><em>Think Together</em></h1><p>活動即將開始，掃描 QR Code 加入即時互動，<br>和我們一起為永續未來發聲。</p><div class="esg-pillars"><article><b>E</b><span><strong>ENVIRONMENT</strong>環境永續</span></article><article><b>S</b><span><strong>SOCIAL</strong>社會共好</span></article><article><b>G</b><span><strong>GOVERNANCE</strong>責任治理</span></article></div></div><aside class="lobby-join"><div class="lobby-qr-frame"><div id="joinQr" class="join-qr"></div><span class="qr-corner qr-corner-a"></span><span class="qr-corner qr-corner-b"></span></div><span class="eyebrow">SCAN TO JOIN</span><h2>掃描加入活動</h2><p>${escapeHtml(audienceUrl())}</p><div class="join-pulse"><i></i><span>Live session is ready</span></div></aside></div><footer class="lobby-footer"><span>ESG × MM INTERACTIVE EXPERIENCE</span><span>活動即將開始</span></footer></section>`;
   if (window.QRCode) {
     const box = document.getElementById("joinQr");
@@ -54,10 +60,12 @@ function idle() {
   }
 }
 function loading() {
+  displayTheme.disabled = false;
   screen.innerHTML =
     '<div class="display-loading"><span class="spinner"></span><p>正在載入題目</p></div>';
 }
 function shell(content) {
+  displayTheme.disabled = false;
   const part = String(question.part || formatType(question.type)).replaceAll(
     "全員互動",
     "ESG × MM",
@@ -96,6 +104,7 @@ function syncDisplayTimer() {
 }
 function render() {
   if (!question) return;
+  displayAudio.sync(session);
   if (session.state === "lottery") return lottery();
   if (session.state === "live")
     return shell(
