@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   initializeFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc,
-  deleteDoc, onSnapshot, query, orderBy, serverTimestamp, writeBatch
+  deleteDoc, onSnapshot, query, orderBy, serverTimestamp, writeBatch, increment
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
@@ -17,6 +17,6 @@ export const auth = getAuth(app);
 
 export {
   collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
-  onSnapshot, query, orderBy, serverTimestamp, writeBatch,
+  onSnapshot, query, orderBy, serverTimestamp, writeBatch, increment,
   GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, ADMIN_EMAILS,
 };
