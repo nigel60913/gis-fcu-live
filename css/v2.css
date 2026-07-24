@@ -1726,21 +1726,40 @@ textarea {
   }
 }
 
-.display-audio-control {
+.display-audio-controls {
   position: fixed;
   z-index: 1000;
   right: clamp(16px, 2vw, 30px);
   bottom: clamp(16px, 2vw, 30px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.display-audio-control,
+.display-volume-control {
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  padding: 10px 15px 10px 10px;
   border: 1px solid rgba(7, 59, 92, 0.12);
   border-radius: 999px;
   color: var(--navy);
   background: rgba(255, 255, 255, 0.82);
   box-shadow: 0 12px 35px rgba(7, 59, 92, 0.14);
   backdrop-filter: blur(15px);
+}
+.display-audio-control {
+  padding: 10px 15px 10px 10px;
   cursor: pointer;
   font: inherit;
   font-size: 12px;
@@ -1748,6 +1767,55 @@ textarea {
   transition:
     transform 0.2s ease,
     background 0.2s ease;
+}
+.display-volume-control {
+  min-height: 50px;
+  padding: 8px 12px;
+  cursor: default;
+}
+.display-volume-control .volume-icon {
+  width: 22px;
+  text-align: center;
+  font-size: 15px;
+}
+.display-volume-slider {
+  --volume-level: 52%;
+  width: clamp(90px, 9vw, 145px);
+  height: 5px;
+  margin: 0;
+  border-radius: 999px;
+  outline: none;
+  appearance: none;
+  background: linear-gradient(
+    to right,
+    var(--lime) 0 var(--volume-level),
+    rgba(7, 59, 92, 0.14) var(--volume-level) 100%
+  );
+  cursor: pointer;
+}
+.display-volume-slider::-webkit-slider-thumb {
+  width: 17px;
+  height: 17px;
+  border: 3px solid white;
+  border-radius: 50%;
+  appearance: none;
+  background: var(--navy);
+  box-shadow: 0 2px 8px rgba(7, 59, 92, 0.28);
+}
+.display-volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 3px solid white;
+  border-radius: 50%;
+  background: var(--navy);
+  box-shadow: 0 2px 8px rgba(7, 59, 92, 0.28);
+}
+.display-volume-value {
+  min-width: 34px;
+  color: var(--navy);
+  font-size: 11px;
+  font-weight: 900;
+  text-align: right;
 }
 .display-audio-control:hover {
   transform: translateY(-2px);
@@ -1776,6 +1844,17 @@ textarea {
   }
   .display-audio-control {
     padding: 8px;
+  }
+  .display-audio-controls {
+    align-items: flex-end;
+    flex-direction: column;
+  }
+  .display-volume-control {
+    min-height: 42px;
+    padding: 6px 10px;
+  }
+  .display-volume-slider {
+    width: 92px;
   }
 }
 .submit-success.is-wrong .success-check {

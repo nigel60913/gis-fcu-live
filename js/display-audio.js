@@ -29,17 +29,25 @@ const NOTES = {
 };
 
 export function createDisplayAudio() {
+  const VOLUME_KEY = "gisDisplayAudioVolume";
+  const savedVolume = Number.parseInt(localStorage.getItem(VOLUME_KEY), 10);
   let context;
   let master;
   let enabled = false;
+  let volume = Number.isFinite(savedVolume)
+    ? Math.min(100, Math.max(0, savedVolume))
+    : 52;
   let mode = "lobby";
   let session = {};
   let loopTimer;
   let beat = 0;
   let lastRevealMode = "";
-  const button = makeButton();
+  const { button, slider, valueLabel } = makeControls();
 
-  function makeButton() {
+  function makeControls() {
+    const controls = document.createElement("div");
+    controls.className = "display-audio-controls";
+
     const control = document.createElement("button");
     control.type = "button";
     control.className = "display-audio-control";
@@ -47,8 +55,17 @@ export function createDisplayAudio() {
     control.innerHTML =
       '<span class="audio-icon" aria-hidden="true">♪</span><span class="audio-label">開啟音效</span>';
     control.onclick = toggle;
-    document.body.append(control);
-    return control;
+
+    const volumeControl = document.createElement("label");
+    volumeControl.className = "display-volume-control";
+    volumeControl.innerHTML = `<span class="volume-icon" aria-hidden="true">🔊</span><span class="sr-only">Display 音量</span><input class="display-volume-slider" type="range" min="0" max="100" step="1" value="${volume}" aria-label="Display 音量"><output class="display-volume-value">${volume}%</output>`;
+    const volumeSlider = volumeControl.querySelector(".display-volume-slider");
+    const volumeValue = volumeControl.querySelector(".display-volume-value");
+    volumeSlider.addEventListener("input", setVolume);
+
+    controls.append(control, volumeControl);
+    document.body.append(controls);
+    return { button: control, slider: volumeSlider, valueLabel: volumeValue };
   }
 
   async function toggle() {
@@ -56,7 +73,11 @@ export function createDisplayAudio() {
     if (context.state === "suspended") await context.resume();
     enabled = !enabled;
     master.gain.cancelScheduledValues(context.currentTime);
-    master.gain.setTargetAtTime(enabled ? 0.52 : 0, context.currentTime, 0.08);
+    master.gain.setTargetAtTime(
+      enabled ? volume / 100 : 0,
+      context.currentTime,
+      0.08,
+    );
     button.classList.toggle("is-on", enabled);
     button.setAttribute("aria-pressed", String(enabled));
     updateButton();
@@ -67,6 +88,22 @@ export function createDisplayAudio() {
     } else {
       stopLoop();
     }
+  }
+
+  function setVolume(event) {
+    volume = Number(event.target.value);
+    valueLabel.textContent = `${volume}%`;
+    slider.style.setProperty("--volume-level", `${volume}%`);
+    localStorage.setItem(VOLUME_KEY, String(volume));
+    if (master && context) {
+      master.gain.cancelScheduledValues(context.currentTime);
+      master.gain.setTargetAtTime(
+        enabled ? volume / 100 : 0,
+        context.currentTime,
+        0.05,
+      );
+    }
+    updateButton();
   }
 
   function setup() {
@@ -106,9 +143,11 @@ export function createDisplayAudio() {
   function updateButton() {
     const label = button.querySelector(".audio-label");
     label.textContent = enabled
-      ? `${MODE_LABELS[mode] || "活動音效"}・開`
+      ? `${MODE_LABELS[mode] || "活動音效"}・${volume}%`
       : "開啟音效";
     button.title = enabled ? "點擊靜音" : "瀏覽器需要點擊後才能播放音效";
+    const icon = document.querySelector(".display-volume-control .volume-icon");
+    if (icon) icon.textContent = volume === 0 ? "🔇" : volume < 45 ? "🔉" : "🔊";
   }
 
   function startLoop() {
@@ -222,5 +261,6 @@ export function createDisplayAudio() {
     );
   }
 
+  slider.style.setProperty("--volume-level", `${volume}%`);
   return { sync };
 }
