@@ -13,6 +13,4 @@ export const firebaseConfig = {
 
 // 主持人後台登入白名單：只有這些 Google 帳號可以進入後台管理題目
 // 也可以改用 Firestore 的 admins collection，見 README.md 說明
-export const ADMIN_EMAILS = [
-  "nigel60913@gmail.com",
-];
+export const ADMIN_EMAILS = [];
