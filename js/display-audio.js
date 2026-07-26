@@ -3,7 +3,7 @@ const MODE_LABELS = {
   waiting: "等待開始",
   countdown: "答題倒數",
   locked: "等待公布",
-  results: "結果音效",
+  results: "答案講解音樂",
   lottery: "抽獎音效",
 };
 
@@ -32,12 +32,15 @@ const NOTES = {
 
 export function createDisplayAudio() {
   const VOLUME_KEY = "gisDisplayAudioVolume";
+  const RESULTS_MUSIC_URL = "assets/audio/happy-upbeat-results.mp3";
   const MAX_OUTPUT_GAIN = 5.2;
   const SOURCE_GAIN = 1.35;
   const savedVolume = Number.parseInt(localStorage.getItem(VOLUME_KEY), 10);
   let context;
   let master;
   let limiter;
+  let resultsMusic;
+  let resultsMusicGain;
   let enabled = false;
   let volume = Number.isFinite(savedVolume)
     ? Math.min(100, Math.max(0, savedVolume))
@@ -90,8 +93,10 @@ export function createDisplayAudio() {
       beat = 0;
       startLoop();
       playWelcome();
+      syncResultsMusic();
     } else {
       stopLoop();
+      stopResultsMusic();
     }
   }
 
@@ -115,6 +120,14 @@ export function createDisplayAudio() {
     context = new (window.AudioContext || window.webkitAudioContext)();
     master = context.createGain();
     limiter = context.createDynamicsCompressor();
+    resultsMusicGain = context.createGain();
+    resultsMusic = new Audio(RESULTS_MUSIC_URL);
+    resultsMusic.loop = true;
+    resultsMusic.preload = "auto";
+    resultsMusic.playsInline = true;
+    context.createMediaElementSource(resultsMusic).connect(resultsMusicGain);
+    resultsMusicGain.connect(master);
+    resultsMusicGain.gain.value = 0;
     master.gain.value = 0;
     limiter.threshold.value = -8;
     limiter.knee.value = 6;
@@ -145,6 +158,7 @@ export function createDisplayAudio() {
     if (!enabled || !context) return;
     if (mode === "results" && previousMode !== "results") playReveal();
     if (mode === "lottery" && previousMode !== "lottery") playLottery();
+    syncResultsMusic();
     startLoop();
   }
 
@@ -169,6 +183,7 @@ export function createDisplayAudio() {
 
   function startLoop() {
     stopLoop();
+    if (mode === "results") return;
     scheduleBeat();
   }
 
@@ -201,8 +216,6 @@ export function createDisplayAudio() {
       return { interval: 900, pattern: "locked", remaining };
     if (mode === "lottery")
       return { interval: 350, pattern: "lottery", remaining };
-    if (mode === "results")
-      return { interval: 520, pattern: "results", remaining };
     return { interval: 830, pattern: "lobby", remaining };
   }
 
@@ -233,37 +246,38 @@ export function createDisplayAudio() {
     } else if (pattern === "lottery") {
       const melody = ["C4", "E4", "G4", "C5", "G4", "E5"];
       tone(NOTES[melody[beat % melody.length]], now, 0.18, 0.055, "triangle");
-    } else if (pattern === "results") {
-      const melody = [
-        "E4",
-        "G4",
-        "C5",
-        "G4",
-        "F4",
-        "A4",
-        "C5",
-        "A4",
-        "G4",
-        "B4",
-        "D5",
-        "B4",
-        "F4",
-        "G4",
-        "E4",
-        "D4",
-      ];
-      const roots = ["C3", "F3", "G3", "C3"];
-      const melodyNote = NOTES[melody[beat % melody.length]];
-      tone(melodyNote, now, 0.38, 0.07, "triangle");
-      tone(melodyNote / 2, now, 0.26, 0.025, "sine");
-      if (beat % 2 === 0) {
-        tone(NOTES[roots[Math.floor(beat / 4) % roots.length]], now, 0.42, 0.055, "triangle");
-        tone(NOTES.C5, now + 0.11, 0.08, 0.024, "square");
-      }
-      if (beat % 4 === 2) {
-        tone(NOTES.G4, now + 0.05, 0.12, 0.032, "sine");
-      }
     }
+  }
+
+  function syncResultsMusic() {
+    if (!resultsMusic || !resultsMusicGain || !context) return;
+    if (!enabled || mode !== "results") {
+      stopResultsMusic();
+      return;
+    }
+    const now = context.currentTime;
+    resultsMusicGain.gain.cancelScheduledValues(now);
+    resultsMusicGain.gain.setValueAtTime(
+      Math.max(0.0001, resultsMusicGain.gain.value),
+      now,
+    );
+    resultsMusicGain.gain.exponentialRampToValueAtTime(0.34, now + 0.8);
+    resultsMusic.play().catch(() => {
+      button.title = "請再點一次開啟音效，以允許瀏覽器播放背景音樂";
+    });
+  }
+
+  function stopResultsMusic() {
+    if (!resultsMusic || !resultsMusicGain || !context) return;
+    const now = context.currentTime;
+    resultsMusicGain.gain.cancelScheduledValues(now);
+    resultsMusicGain.gain.setTargetAtTime(0.0001, now, 0.12);
+    window.setTimeout(() => {
+      if (mode !== "results" || !enabled) {
+        resultsMusic.pause();
+        resultsMusic.currentTime = 0;
+      }
+    }, 650);
   }
 
   function tone(frequency, start, duration, volume, type = "sine") {
