@@ -15,4 +15,5 @@ export const firebaseConfig = {
 // 也可以改用 Firestore 的 admins collection，見 README.md 說明
 export const ADMIN_EMAILS = [
   "nigel60913@gmail.com",
+  "gina94183@gmail.com",
 ];
