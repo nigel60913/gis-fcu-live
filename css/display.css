@@ -273,17 +273,17 @@ body.display-body {
 }
 .esg-pillars {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(9px, 1.2vw, 18px);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: clamp(7px, 0.7vw, 12px);
   margin-top: clamp(24px, 4vh, 48px);
-  max-width: 850px;
+  max-width: 1040px;
 }
 .esg-pillars article {
   display: flex;
   align-items: center;
-  gap: clamp(9px, 1vw, 15px);
+  gap: clamp(6px, 0.6vw, 10px);
   min-width: 0;
-  padding: clamp(11px, 1.2vw, 18px);
+  padding: clamp(9px, 0.85vw, 14px);
   border: 1px solid rgba(6, 58, 89, 0.09);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.57);
@@ -307,6 +307,12 @@ body.display-body {
 .esg-pillars article:nth-child(3) b {
   background: linear-gradient(145deg, #718b14, var(--display-lime));
   color: #233600;
+}
+.esg-pillars article:nth-child(4) b {
+  background: linear-gradient(145deg, #7356a8, #a77bd6);
+}
+.esg-pillars article:nth-child(5) b {
+  background: linear-gradient(145deg, #d16f2a, #f4a340);
 }
 .esg-pillars span {
   min-width: 0;
@@ -646,7 +652,7 @@ body.display-body {
     font-size: clamp(43px, 5.4vw, 70px);
   }
   .esg-pillars {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .esg-pillars article {
     padding: 10px 12px;
@@ -688,6 +694,7 @@ body.display-body {
   .esg-pillars {
     margin-left: auto;
     margin-right: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .lobby-footer {
     gap: 15px;

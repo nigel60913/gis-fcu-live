@@ -33,6 +33,7 @@ const NOTES = {
 export function createDisplayAudio() {
   const VOLUME_KEY = "gisDisplayAudioVolume";
   const RESULTS_MUSIC_URL = "assets/audio/happy-upbeat-results.mp3";
+  const MUSIC_MODES = new Set(["lobby", "results"]);
   const MAX_OUTPUT_GAIN = 5.2;
   const SOURCE_GAIN = 1.35;
   const savedVolume = Number.parseInt(localStorage.getItem(VOLUME_KEY), 10);
@@ -125,6 +126,7 @@ export function createDisplayAudio() {
     resultsMusic.loop = true;
     resultsMusic.preload = "auto";
     resultsMusic.playsInline = true;
+    resultsMusic.preservesPitch = true;
     context.createMediaElementSource(resultsMusic).connect(resultsMusicGain);
     resultsMusicGain.connect(master);
     resultsMusicGain.gain.value = 0;
@@ -183,7 +185,7 @@ export function createDisplayAudio() {
 
   function startLoop() {
     stopLoop();
-    if (mode === "results") return;
+    if (MUSIC_MODES.has(mode)) return;
     scheduleBeat();
   }
 
@@ -251,17 +253,22 @@ export function createDisplayAudio() {
 
   function syncResultsMusic() {
     if (!resultsMusic || !resultsMusicGain || !context) return;
-    if (!enabled || mode !== "results") {
+    if (!enabled || !MUSIC_MODES.has(mode)) {
       stopResultsMusic();
       return;
     }
     const now = context.currentTime;
+    const isLobby = mode === "lobby";
+    resultsMusic.playbackRate = isLobby ? 1.06 : 1.1;
     resultsMusicGain.gain.cancelScheduledValues(now);
     resultsMusicGain.gain.setValueAtTime(
       Math.max(0.0001, resultsMusicGain.gain.value),
       now,
     );
-    resultsMusicGain.gain.exponentialRampToValueAtTime(0.34, now + 0.8);
+    resultsMusicGain.gain.exponentialRampToValueAtTime(
+      isLobby ? 0.28 : 0.14,
+      now + 0.8,
+    );
     resultsMusic.play().catch(() => {
       button.title = "請再點一次開啟音效，以允許瀏覽器播放背景音樂";
     });
@@ -273,7 +280,7 @@ export function createDisplayAudio() {
     resultsMusicGain.gain.cancelScheduledValues(now);
     resultsMusicGain.gain.setTargetAtTime(0.0001, now, 0.12);
     window.setTimeout(() => {
-      if (mode !== "results" || !enabled) {
+      if (!MUSIC_MODES.has(mode) || !enabled) {
         resultsMusic.pause();
         resultsMusic.currentTime = 0;
       }
