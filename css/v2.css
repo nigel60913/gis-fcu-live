@@ -1460,6 +1460,12 @@ textarea {
 .esg-pillars article:nth-child(3) {
   animation-delay: -3s;
 }
+.esg-pillars article:nth-child(4) {
+  animation-delay: -4.5s;
+}
+.esg-pillars article:nth-child(5) {
+  animation-delay: -2.25s;
+}
 .esg-pillars b {
   width: 40px;
   height: 40px;
@@ -1476,6 +1482,12 @@ textarea {
 }
 .esg-pillars article:nth-child(3) b {
   background: linear-gradient(135deg, #1b759b, #54b9df);
+}
+.esg-pillars article:nth-child(4) b {
+  background: linear-gradient(135deg, #176f83, #35a6b3);
+}
+.esg-pillars article:nth-child(5) b {
+  background: linear-gradient(135deg, #315c91, #628fc4);
 }
 .esg-pillars span,
 .esg-pillars strong {

@@ -309,10 +309,10 @@ body.display-body {
   color: #233600;
 }
 .esg-pillars article:nth-child(4) b {
-  background: linear-gradient(145deg, #7356a8, #a77bd6);
+  background: linear-gradient(145deg, #176f83, #35a6b3);
 }
 .esg-pillars article:nth-child(5) b {
-  background: linear-gradient(145deg, #d16f2a, #f4a340);
+  background: linear-gradient(145deg, #315c91, #628fc4);
 }
 .esg-pillars span {
   min-width: 0;
