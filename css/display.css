@@ -811,6 +811,28 @@ body.display-body {
   min-height: 0;
   padding: 0;
 }
+.display-results.is-scrollable {
+  align-content: start;
+  justify-content: flex-start;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: clamp(8px, 0.8vw, 14px);
+  padding-bottom: 28px;
+  scrollbar-color: var(--display-blue) rgba(6, 58, 89, 0.08);
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+}
+.display-results.is-scrollable::-webkit-scrollbar {
+  width: 10px;
+}
+.display-results.is-scrollable::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(6, 58, 89, 0.08);
+}
+.display-results.is-scrollable::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--display-blue);
+}
 .display-results > .live-timer-view {
   width: min(780px, 82vw);
   height: 100%;

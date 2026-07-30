@@ -64,7 +64,7 @@ function loading() {
   screen.innerHTML =
     '<div class="display-loading"><span class="spinner"></span><p>正在載入題目</p></div>';
 }
-function shell(content) {
+function shell(content, resultsClass = "") {
   displayTheme.disabled = false;
   const part = String(question.part || formatType(question.type)).replaceAll(
       "全員互動",
@@ -159,14 +159,18 @@ function bars() {
         }),
     );
   }
-  const max = Math.max(1, ...counts);
+  const max = Math.max(1, ...counts),
+    rows = opts.map((option, index) => ({ option, index, count: counts[index] }));
+  if (["single", "multi"].includes(question.type))
+    rows.sort((a, b) => b.count - a.count || a.index - b.index);
   shell(
-    opts
+    rows
       .map(
-        (o, i) =>
-          `<div class="bar-row ${i === question.correctIndex ? "correct" : ""}"><span>${escapeHtml(o)}</span><div class="bar-track"><div class="bar-fill" style="width:${(counts[i] / max) * 100}%"></div></div><b>${counts[i]}</b></div>`,
+        ({ option, index, count }) =>
+          `<div class="bar-row ${index === question.correctIndex ? "correct" : ""}"><span>${escapeHtml(option)}</span><div class="bar-track"><div class="bar-fill" style="width:${(count / max) * 100}%"></div></div><b>${count}</b></div>`,
       )
       .join(""),
+    rows.length > 9 ? "is-scrollable" : "",
   );
 }
 
