@@ -2,7 +2,7 @@ import { db, doc, collection, onSnapshot } from "./firebase.js";
 import { escapeHtml, formatType } from "./utils.js";
 import { bindNetworkStatus } from "./ui.js";
 import { renderWordCloud, tallyWords } from "./wordcloud.js";
-import { createDisplayAudio } from "./display-audio.js?v=2.9.4";
+import { createDisplayAudio } from "./display-audio.js?v=2.9.5";
 const screen = document.getElementById("screen"),
   displayTheme = document.getElementById("displayTheme"),
   sessionRef = doc(db, "session", "current");
@@ -73,7 +73,7 @@ function shell(content, resultsClass = "") {
     titleLength = Array.from(String(question.title || "").trim()).length,
     titleSizeClass =
       titleLength > 60 ? "is-very-long" : titleLength > 32 ? "is-long" : "";
-  screen.innerHTML = `<header class="display-top"><div class="display-brand"><img class="brand-logo" src="assets/logo.png" alt="GIS.FCU"></div><div class="display-live-meta"><div class="voting-progress"><div class="progress"><i style="width:${Math.min(100, responses.length * 3)}%"></i></div><b>${responses.length} 票</b></div></div></header><section class="display-main"><span class="eyebrow">${escapeHtml(part)}</span><h1 class="display-title ${titleSizeClass}">${escapeHtml(question.title)}</h1><div class="display-results">${content}</div></section>`;
+  screen.innerHTML = `<header class="display-top"><div class="display-brand"><img class="brand-logo" src="assets/logo.png" alt="GIS.FCU"></div><div class="display-live-meta"><div class="voting-progress"><div class="progress"><i style="width:${Math.min(100, responses.length * 3)}%"></i></div><b>${responses.length} 票</b></div></div></header><section class="display-main"><span class="eyebrow">${escapeHtml(part)}</span><h1 class="display-title ${titleSizeClass}">${escapeHtml(question.title)}</h1><div class="display-results ${resultsClass}">${content}</div></section>`;
   syncDisplayTimer();
 }
 function timerMarkup() {
@@ -170,7 +170,7 @@ function bars() {
           `<div class="bar-row ${index === question.correctIndex ? "correct" : ""}"><span>${escapeHtml(option)}</span><div class="bar-track"><div class="bar-fill" style="width:${(count / max) * 100}%"></div></div><b>${count}</b></div>`,
       )
       .join(""),
-    rows.length > 9 ? "is-scrollable" : "",
+    rows.length > 8 ? "is-many-options" : "",
   );
 }
 
