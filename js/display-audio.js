@@ -32,7 +32,12 @@ const NOTES = {
 
 export function createDisplayAudio() {
   const VOLUME_KEY = "gisDisplayAudioVolume";
-  const RESULTS_MUSIC_URL = "assets/audio/happy-upbeat-results.mp3";
+  const LOBBY_MUSIC_URL = "assets/audio/lobby.mp3";
+  const COUNTDOWN_MUSIC_URLS = {
+    15: "assets/audio/15.mp3",
+    30: "assets/audio/30.mp3",
+    60: "assets/audio/60.mp3",
+  };
   const MUSIC_MODES = new Set(["lobby", "results"]);
   const MAX_OUTPUT_GAIN = 5.2;
   const SOURCE_GAIN = 1.35;
@@ -42,6 +47,9 @@ export function createDisplayAudio() {
   let limiter;
   let resultsMusic;
   let resultsMusicGain;
+  let countdownMusic;
+  let countdownMusicGain;
+  let countdownDuration = 0;
   let enabled = false;
   let volume = Number.isFinite(savedVolume)
     ? Math.min(100, Math.max(0, savedVolume))
@@ -95,9 +103,11 @@ export function createDisplayAudio() {
       startLoop();
       playWelcome();
       syncResultsMusic();
+      syncCountdownMusic();
     } else {
       stopLoop();
       stopResultsMusic();
+      stopCountdownMusic();
     }
   }
 
@@ -122,7 +132,7 @@ export function createDisplayAudio() {
     master = context.createGain();
     limiter = context.createDynamicsCompressor();
     resultsMusicGain = context.createGain();
-    resultsMusic = new Audio(RESULTS_MUSIC_URL);
+    resultsMusic = new Audio(LOBBY_MUSIC_URL);
     resultsMusic.loop = true;
     resultsMusic.preload = "auto";
     resultsMusic.playsInline = true;
@@ -130,6 +140,9 @@ export function createDisplayAudio() {
     context.createMediaElementSource(resultsMusic).connect(resultsMusicGain);
     resultsMusicGain.connect(master);
     resultsMusicGain.gain.value = 0;
+    countdownMusicGain = context.createGain();
+    countdownMusicGain.connect(master);
+    countdownMusicGain.gain.value = 0;
     master.gain.value = 0;
     limiter.threshold.value = -8;
     limiter.knee.value = 6;
@@ -161,6 +174,7 @@ export function createDisplayAudio() {
     if (mode === "results" && previousMode !== "results") playReveal();
     if (mode === "lottery" && previousMode !== "lottery") playLottery();
     syncResultsMusic();
+    syncCountdownMusic(previousMode);
     startLoop();
   }
 
@@ -207,6 +221,7 @@ export function createDisplayAudio() {
       Math.ceil((Number(session.timerEndsAt) - Date.now()) / 1000),
     );
     if (mode === "countdown") {
+      if (countdownMusic && !countdownMusic.paused) return { interval: 1200, pattern: "silent", remaining };
       if (remaining <= 0)
         return { interval: 1200, pattern: "expired", remaining };
       if (remaining <= 10) return { interval: 430, pattern: "urgent", remaining };
@@ -223,7 +238,9 @@ export function createDisplayAudio() {
 
   function playBeat({ pattern, remaining }) {
     const now = context.currentTime + 0.02;
-    if (pattern === "lobby") {
+    if (pattern === "silent") {
+      return;
+    } else if (pattern === "lobby") {
       const melody = ["C4", "E4", "G4", "B4", "A4", "G4", "E4", "D4"];
       tone(NOTES[melody[beat % melody.length]], now, 0.62, 0.055, "sine");
       if (beat % 4 === 0) {
@@ -272,6 +289,56 @@ export function createDisplayAudio() {
     resultsMusic.play().catch(() => {
       button.title = "請再點一次開啟音效，以允許瀏覽器播放背景音樂";
     });
+  }
+
+  function getCountdownDuration() {
+    const configured = Number(session.timerDuration);
+    if ([15, 30, 60].includes(configured)) return configured;
+    const remaining = Math.max(
+      0,
+      Math.ceil((Number(session.timerEndsAt) - Date.now()) / 1000),
+    );
+    return [15, 30, 60].reduce((best, value) =>
+      Math.abs(value - remaining) < Math.abs(best - remaining) ? value : best,
+    15);
+  }
+
+  function syncCountdownMusic(previousMode = "") {
+    if (!context || !enabled || mode !== "countdown") {
+      stopCountdownMusic();
+      return;
+    }
+    const duration = getCountdownDuration();
+    if (previousMode === "countdown" && countdownMusic && countdownDuration === duration) return;
+    stopCountdownMusic();
+    countdownDuration = duration;
+    countdownMusic = new Audio(COUNTDOWN_MUSIC_URLS[duration]);
+    countdownMusic.preload = "auto";
+    countdownMusic.playsInline = true;
+    countdownMusic.loop = false;
+    countdownMusic.currentTime = 0;
+    context.createMediaElementSource(countdownMusic).connect(countdownMusicGain);
+    const now = context.currentTime;
+    countdownMusicGain.gain.cancelScheduledValues(now);
+    countdownMusicGain.gain.setValueAtTime(0.0001, now);
+    countdownMusicGain.gain.exponentialRampToValueAtTime(0.42, now + 0.18);
+    countdownMusic.play().catch(() => {
+      button.title = "請再點一次開啟音效，以允許瀏覽器播放倒數音樂";
+    });
+  }
+
+  function stopCountdownMusic() {
+    if (!countdownMusic || !countdownMusicGain || !context) return;
+    const audio = countdownMusic;
+    const now = context.currentTime;
+    countdownMusicGain.gain.cancelScheduledValues(now);
+    countdownMusicGain.gain.setTargetAtTime(0.0001, now, 0.05);
+    window.setTimeout(() => {
+      audio.pause();
+      audio.currentTime = 0;
+    }, 220);
+    countdownMusic = null;
+    countdownDuration = 0;
   }
 
   function stopResultsMusic() {
