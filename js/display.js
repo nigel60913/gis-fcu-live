@@ -2,7 +2,7 @@ import { db, doc, collection, onSnapshot } from "./firebase.js";
 import { escapeHtml, formatType } from "./utils.js";
 import { bindNetworkStatus } from "./ui.js";
 import { renderWordCloud, tallyWords } from "./wordcloud.js";
-import { createDisplayAudio } from "./display-audio.js?v=2.9.3";
+import { createDisplayAudio } from "./display-audio.js?v=2.9.5";
 const screen = document.getElementById("screen"),
   displayTheme = document.getElementById("displayTheme"),
   sessionRef = doc(db, "session", "current");
@@ -167,16 +167,10 @@ function bars() {
     rows
       .map(
         ({ option, index, count }) =>
-          `<div class="bar-row ${index === question.correctIndex ? "correct" : ""} ${count > 0 && count === max ? "is-leading" : ""}"><span>${escapeHtml(option)}</span><div class="bar-track"><div class="bar-fill" style="width:${(count / max) * 100}%"></div></div><b>${count}</b></div>`,
+          `<div class="bar-row ${index === question.correctIndex ? "correct" : ""}"><span>${escapeHtml(option)}</span><div class="bar-track"><div class="bar-fill" style="width:${(count / max) * 100}%"></div></div><b>${count}</b></div>`,
       )
       .join(""),
-    [
-      rows.length > 9 ? "is-dense" : "",
-      rows.length > 18 ? "is-ultra-dense" : "",
-      rows.length > 30 ? "is-scrollable" : "",
-    ]
-      .filter(Boolean)
-      .join(" "),
+    rows.length > 8 ? "is-many-options" : "",
   );
 }
 
