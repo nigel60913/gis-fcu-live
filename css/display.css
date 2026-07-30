@@ -544,6 +544,36 @@ body.display-body {
   line-height: 0.95;
   margin-top: clamp(14px, 2vh, 24px);
 }
+.display-results > .lottery-card {
+  width: min(960px, 100%);
+  padding: clamp(30px, 4vw, 64px);
+}
+.lottery-card > .eyebrow {
+  display: block;
+  margin-bottom: 12px;
+  font-size: clamp(12px, 1vw, 16px);
+}
+.lottery-card > .muted {
+  margin: 0;
+  font-size: clamp(18px, 1.5vw, 26px);
+}
+.lottery-winner {
+  max-width: 100%;
+  margin-top: clamp(18px, 2.5vh, 32px);
+  color: var(--display-navy);
+  font-size: clamp(54px, 8vw, 128px);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.lottery-winner.is-long {
+  font-size: clamp(46px, 5.5vw, 88px);
+}
+.lottery-winner.is-very-long {
+  font-size: clamp(38px, 4.3vw, 68px);
+}
 .bar-row {
   grid-template-columns: minmax(210px, 1.25fr) minmax(280px, 4.4fr) minmax(
       72px,

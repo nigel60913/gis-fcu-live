@@ -312,8 +312,16 @@ function lottery() {
     return shell(
       '<div class="display-idle"><h2>還沒有可抽選的參與者</h2></div>',
     );
-  const winner = pool[Math.floor(Math.random() * pool.length)];
+  const winner = pool[Math.floor(Math.random() * pool.length)],
+    winnerName = String(winner.nickname || ""),
+    winnerNameLength = Array.from(winnerName).length,
+    winnerSizeClass =
+      winnerNameLength > 10
+        ? "is-very-long"
+        : winnerNameLength > 6
+          ? "is-long"
+          : "";
   shell(
-    `<div class="display-idle"><span class="eyebrow">LUCKY DRAW</span><p class="muted">恭喜本次幸運得主</p><div class="big-number">${escapeHtml(winner.nickname)}</div></div>`,
+    `<div class="display-idle lottery-card"><span class="eyebrow">LUCKY DRAW</span><p class="muted">恭喜本次幸運得主</p><div class="lottery-winner ${winnerSizeClass}">${escapeHtml(winnerName)}</div></div>`,
   );
 }
