@@ -64,13 +64,16 @@ function loading() {
   screen.innerHTML =
     '<div class="display-loading"><span class="spinner"></span><p>正在載入題目</p></div>';
 }
-function shell(content) {
+function shell(content, resultsClass = "") {
   displayTheme.disabled = false;
   const part = String(question.part || formatType(question.type)).replaceAll(
-    "全員互動",
-    "ESG × MM",
-  );
-  screen.innerHTML = `<header class="display-top"><div class="display-brand"><img class="brand-logo" src="assets/logo.png" alt="GIS.FCU"></div><div class="display-live-meta"><div class="voting-progress"><div class="progress"><i style="width:${Math.min(100, responses.length * 3)}%"></i></div><b>${responses.length} 票</b></div></div></header><section class="display-main"><span class="eyebrow">${escapeHtml(part)}</span><h1 class="display-title">${escapeHtml(question.title)}</h1><div class="display-results">${content}</div></section>`;
+      "全員互動",
+      "ESG × MM",
+    ),
+    titleLength = Array.from(String(question.title || "").trim()).length,
+    titleSizeClass =
+      titleLength > 60 ? "is-very-long" : titleLength > 32 ? "is-long" : "";
+  screen.innerHTML = `<header class="display-top"><div class="display-brand"><img class="brand-logo" src="assets/logo.png" alt="GIS.FCU"></div><div class="display-live-meta"><div class="voting-progress"><div class="progress"><i style="width:${Math.min(100, responses.length * 3)}%"></i></div><b>${responses.length} 票</b></div></div></header><section class="display-main"><span class="eyebrow">${escapeHtml(part)}</span><h1 class="display-title ${titleSizeClass}">${escapeHtml(question.title)}</h1><div class="display-results ${resultsClass}">${content}</div></section>`;
   syncDisplayTimer();
 }
 function timerMarkup() {
@@ -156,14 +159,24 @@ function bars() {
         }),
     );
   }
-  const max = Math.max(1, ...counts);
+  const max = Math.max(1, ...counts),
+    rows = opts.map((option, index) => ({ option, index, count: counts[index] }));
+  if (["single", "multi"].includes(question.type))
+    rows.sort((a, b) => b.count - a.count || a.index - b.index);
   shell(
-    opts
+    rows
       .map(
-        (o, i) =>
-          `<div class="bar-row ${i === question.correctIndex ? "correct" : ""}"><span>${escapeHtml(o)}</span><div class="bar-track"><div class="bar-fill" style="width:${(counts[i] / max) * 100}%"></div></div><b>${counts[i]}</b></div>`,
+        ({ option, index, count }) =>
+          `<div class="bar-row ${index === question.correctIndex ? "correct" : ""} ${count > 0 && count === max ? "is-leading" : ""}"><span>${escapeHtml(option)}</span><div class="bar-track"><div class="bar-fill" style="width:${(count / max) * 100}%"></div></div><b>${count}</b></div>`,
       )
       .join(""),
+    [
+      rows.length > 9 ? "is-dense" : "",
+      rows.length > 18 ? "is-ultra-dense" : "",
+      rows.length > 30 ? "is-scrollable" : "",
+    ]
+      .filter(Boolean)
+      .join(" "),
   );
 }
 

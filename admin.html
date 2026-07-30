@@ -99,7 +99,7 @@
               <div class="segmented">
                 <button class="selected" data-time="60">60 秒</button
                 ><button data-time="30">30 秒</button
-                ><button data-time="15">15 秒</button>
+                ><button data-time="10">10 秒</button>
               </div>
               <label class="timer-custom"
                 >自訂秒數
@@ -228,6 +228,17 @@
         >
         <p id="revealHint" class="muted reveal-hint"></p>
         <div id="questionLimits" class="question-limits">
+          <label
+            >本題倒數秒數
+            <input
+              id="fTimerDuration"
+              type="number"
+              min="5"
+              max="3600"
+              step="1"
+              value="60"
+            />
+          </label>
           <label id="wordLimitField" hidden
             >文字雲每個答案最多字數
             <input id="fWordLimit" type="number" min="1" max="120" value="20" />
@@ -265,6 +276,6 @@
       </form>
     </dialog>
     <div id="toast" class="toast"></div>
-    <script type="module" src="js/admin.js?v=2.8.1"></script>
+    <script type="module" src="js/admin.js?v=2.9.4"></script>
   </body>
 </html>
