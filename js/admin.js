@@ -56,6 +56,7 @@ let questions = [],
   correctIndexes = [],
   revealMode = "results",
   selectedTimerSeconds = 60,
+  timerQuestionId = null,
   draggedQuestionId = null;
 bindNetworkStatus();
 onAuthStateChanged(auth, (user) => {
@@ -138,25 +139,25 @@ function wireStatic() {
     renderOptions();
   };
   $("timerSeconds").oninput = (event) => {
-    selectedTimerSeconds = clamp(Number(event.target.value) || 60, 5, 3600);
-    document
-      .querySelectorAll("[data-time]")
-      .forEach((button) =>
-        button.classList.toggle(
-          "selected",
-          Number(button.dataset.time) === selectedTimerSeconds,
-        ),
-      );
+    selectTimerDuration(Number(event.target.value) || 60, false);
   };
   document.querySelectorAll("[data-time]").forEach((button) => {
     button.onclick = () => {
-      selectedTimerSeconds = Number(button.dataset.time);
-      $("timerSeconds").value = selectedTimerSeconds;
-      document
-        .querySelectorAll("[data-time]")
-        .forEach((item) => item.classList.toggle("selected", item === button));
+      selectTimerDuration(Number(button.dataset.time));
     };
   });
+}
+function selectTimerDuration(value, syncInput = true) {
+  selectedTimerSeconds = clamp(Math.round(Number(value) || 60), 5, 3600);
+  if (syncInput) $("timerSeconds").value = selectedTimerSeconds;
+  document
+    .querySelectorAll("[data-time]")
+    .forEach((button) =>
+      button.classList.toggle(
+        "selected",
+        Number(button.dataset.time) === selectedTimerSeconds,
+      ),
+    );
 }
 function audienceUrl() {
   return location.href.replace(/admin\.html.*$/, "index.html");
@@ -221,6 +222,10 @@ function renderControl() {
     loginVersionLabel.textContent = `登入版本：${Number(session.loginVersion || 0)}`;
   const q = questions.find((x) => x.id === session.activeQuestionId),
     idx = questions.findIndex((x) => x.id === session.activeQuestionId);
+  if (q && timerQuestionId !== q.id) {
+    selectTimerDuration(q.timerDuration ?? 60);
+    timerQuestionId = q.id;
+  } else if (!q) timerQuestionId = null;
   $("activeQTitle").textContent = q?.title || "尚未選擇題目";
   $("activeQMeta").textContent = q
     ? `${formatType(q.type)}・第 ${idx + 1} 題`
@@ -369,7 +374,7 @@ function renderQuestions() {
   $("qList").innerHTML = questions
     .map(
       (q, i) =>
-        `<article class="q-item ${q.id === session.activeQuestionId ? "active" : ""}" data-id="${q.id}" draggable="true"><button type="button" class="drag-handle" aria-label="拖曳調整順序" title="拖曳調整順序">⋮⋮</button><div class="q-index">${typeIcon(q.type)}</div><div><h3>${escapeHtml(q.title)}</h3><p>${i + 1}・${formatType(q.type)}・${escapeHtml(q.part || "")}</p></div><button class="icon-button" data-edit="${q.id}">•••</button></article>`,
+        `<article class="q-item ${q.id === session.activeQuestionId ? "active" : ""}" data-id="${q.id}" draggable="true"><button type="button" class="drag-handle" aria-label="拖曳調整順序" title="拖曳調整順序">⋮⋮</button><div class="q-index">${typeIcon(q.type)}</div><div><h3>${escapeHtml(q.title)}</h3><p>${i + 1}・${formatType(q.type)}・${escapeHtml(q.part || "")}・${clamp(Math.round(Number(q.timerDuration) || 60), 5, 3600)} 秒</p></div><button class="icon-button" data-edit="${q.id}">•••</button></article>`,
     )
     .join("");
   document.querySelectorAll(".q-item").forEach(
@@ -492,6 +497,7 @@ function openEditor(id = null) {
   $("fMax").value = q?.max ?? 100;
   $("fWordLimit").value = q?.wordLimit ?? 20;
   $("fMultiLimit").value = q?.maxSelections ?? 2;
+  $("fTimerDuration").value = q?.timerDuration ?? 60;
   $("fRevealMode").value = revealMode;
   $("btnDeleteQ").hidden = !id;
   $("typeGrid").innerHTML = types
@@ -618,7 +624,12 @@ async function saveQuestion() {
       1,
       120,
     ),
-    maxSelections = clamp(rawMultiLimit, 1, Math.max(1, cleanOptions.length));
+    maxSelections = clamp(rawMultiLimit, 1, Math.max(1, cleanOptions.length)),
+    timerDuration = clamp(
+      Math.round(Number($("fTimerDuration").value) || 60),
+      5,
+      3600,
+    );
   if (["fastest", "correctness"].includes(revealMode)) {
     if (canMarkSingle && !Number.isInteger(correctIndex))
       return toast(
@@ -645,8 +656,12 @@ async function saveQuestion() {
     correctIndexes: canMarkMulti ? correctIndexes : null,
     wordLimit: ["wordcloud", "open"].includes(currentType) ? wordLimit : null,
     maxSelections: currentType === "multi" ? maxSelections : null,
+    timerDuration,
   };
-  if (editingId) await updateDoc(doc(questionsCol, editingId), payload);
+  if (editingId) {
+    if (editingId === session.activeQuestionId) timerQuestionId = null;
+    await updateDoc(doc(questionsCol, editingId), payload);
+  }
   else
     await addDoc(questionsCol, {
       ...payload,
