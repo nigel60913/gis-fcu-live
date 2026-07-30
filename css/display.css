@@ -309,10 +309,10 @@ body.display-body {
   color: #233600;
 }
 .esg-pillars article:nth-child(4) b {
-  background: linear-gradient(145deg, #7356a8, #a77bd6);
+  background: linear-gradient(145deg, #176f83, #35a6b3);
 }
 .esg-pillars article:nth-child(5) b {
-  background: linear-gradient(145deg, #d16f2a, #f4a340);
+  background: linear-gradient(145deg, #315c91, #628fc4);
 }
 .esg-pillars span {
   min-width: 0;
@@ -793,6 +793,19 @@ body.display-body {
   margin: clamp(8px, 1.2vh, 18px) 0 clamp(10px, 1.7vh, 24px);
   font-size: clamp(34px, 3.7vw, 68px);
   line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+.display-title.is-long {
+  max-width: min(1600px, 94vw);
+  font-size: clamp(30px, 2.8vw, 50px);
+  line-height: 1.14;
+}
+.display-title.is-very-long {
+  max-width: min(1680px, 94vw);
+  margin-top: clamp(6px, 0.8vh, 12px);
+  margin-bottom: clamp(8px, 1vh, 14px);
+  font-size: clamp(26px, 2.25vw, 40px);
+  line-height: 1.16;
 }
 .display-results {
   min-height: 0;
@@ -828,6 +841,12 @@ body.display-body {
 @media (max-height: 760px) and (min-width: 901px) {
   .display-title {
     font-size: clamp(30px, 3.3vw, 58px);
+  }
+  .display-title.is-long {
+    font-size: clamp(28px, 2.5vw, 44px);
+  }
+  .display-title.is-very-long {
+    font-size: clamp(24px, 2vw, 36px);
   }
   .display-timer-large {
     width: 190px;
