@@ -1,0 +1,110 @@
+name: 150 人一鍵壓力測試
+
+on:
+  workflow_dispatch:
+    inputs:
+      ramp_seconds:
+        description: "150 人在幾秒內進場"
+        required: true
+        default: "30"
+        type: choice
+        options:
+          - "30"
+          - "10"
+          - "1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-load-test
+  cancel-in-progress: false
+
+jobs:
+  load-test:
+    name: 對測試環境執行 150 人壓測
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      APP_BASE_URL: https://nigel60913.github.io/gis-fcu-live
+      PROJECT_ID: test-ae77d
+      FIRESTORE_BASE_URL: https://firestore.googleapis.com
+      JMETER_VERSION: 5.6.3
+    steps:
+      - name: 下載專案
+        uses: actions/checkout@v4
+
+      - name: 安裝 Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: 安裝 JMeter
+        run: |
+          curl --fail --silent --show-error --location \
+            "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz" \
+            | tar -xz -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/apache-jmeter-${JMETER_VERSION}/bin" >> "$GITHUB_PATH"
+
+      - name: 確認測試題已開始
+        shell: bash
+        run: |
+          set -euo pipefail
+          API_KEY="$(sed -n 's/.*apiKey: "\([^"]*\)".*/\1/p' js/firebase-config.js | head -1)"
+          test -n "$API_KEY" || { echo "找不到 Firebase Web API key"; exit 1; }
+          echo "::add-mask::$API_KEY"
+          echo "API_KEY=$API_KEY" >> "$GITHUB_ENV"
+
+          curl --fail --silent --show-error --location \
+            --output /dev/null "$APP_BASE_URL/index.html"
+          curl --fail --silent --show-error \
+            "$FIRESTORE_BASE_URL/v1/projects/$PROJECT_ID/databases/(default)/documents/session/current?key=$API_KEY" \
+            --output "$RUNNER_TEMP/session.json"
+
+          QUESTION_ID="$(jq -r '.fields.activeQuestionId.stringValue // empty' "$RUNNER_TEMP/session.json")"
+          STATE="$(jq -r '.fields.state.stringValue // empty' "$RUNNER_TEMP/session.json")"
+          test -n "$QUESTION_ID" || { echo "::error::目前沒有選擇測試題。請先在主持人後台開始一題單選題。"; exit 1; }
+          test "$STATE" = "live" || { echo "::error::目前題目未開放作答（state=$STATE）。請按下「開始投票」。"; exit 1; }
+
+          curl --fail --silent --show-error \
+            "$FIRESTORE_BASE_URL/v1/projects/$PROJECT_ID/databases/(default)/documents/questions/$QUESTION_ID?key=$API_KEY" \
+            --output "$RUNNER_TEMP/question.json"
+          QUESTION_TYPE="$(jq -r '.fields.type.stringValue // empty' "$RUNNER_TEMP/question.json")"
+          case "$QUESTION_TYPE" in
+            single|quiz|yesno) ;;
+            *) echo "::error::目前題型是 $QUESTION_TYPE。請改用單選題、Quiz 或 Yes/No。"; exit 1 ;;
+          esac
+          echo "題目連線成功：$QUESTION_ID（$QUESTION_TYPE）"
+
+      - name: 執行 150 人壓力測試
+        run: |
+          mkdir -p load-test/results/github-actions
+          jmeter -n -t load-test/jmeter-150-users.jmx \
+            -JUSERS=150 \
+            -JRAMP_SECONDS='${{ inputs.ramp_seconds }}' \
+            -JLOOPS=1 \
+            -JTHINK_TIME_MS=1000 \
+            -JAPP_BASE_URL="$APP_BASE_URL" \
+            -JFIRESTORE_BASE_URL="$FIRESTORE_BASE_URL" \
+            -JPROJECT_ID="$PROJECT_ID" \
+            -JAPI_KEY_QUERY="?key=$API_KEY" \
+            -l load-test/results/github-actions/results.jtl \
+            -e -o load-test/results/github-actions/report
+
+      - name: 判定是否通過
+        run: |
+          python3 load-test/evaluate-results.py \
+            load-test/results/github-actions/results.jtl \
+            --expected-users 150 --max-submit-p95-ms 3000 \
+            | tee load-test/results/github-actions/summary.txt
+          cat load-test/results/github-actions/summary.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 上傳完整報告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmeter-150-users-report
+          path: load-test/results/github-actions/
+          if-no-files-found: warn
+          retention-days: 14
