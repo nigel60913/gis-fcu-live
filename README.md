@@ -87,6 +87,14 @@ python -m http.server 8080
 
 開啟 `http://localhost:8080/admin.html`。Firebase 設定沿用 `js/firebase-config.js`。
 
+## 150 人壓力測試
+
+專案提供 JMeter 測試計畫，模擬 150 位觀眾載入頁面、讀取場次與題目，並同時送出答案。
+執行方式、Firebase Emulator 設定、正式環境注意事項及驗收指標請見
+[`load-test/README.md`](load-test/README.md)。
+不想安裝 JMeter 時，可直接到 GitHub 專案的 **Actions** 頁籤執行
+「150 人一鍵壓力測試」。
+
 ## 程式結構
 
 ```text
