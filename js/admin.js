@@ -127,6 +127,10 @@ function wireStatic() {
     });
   $("btnNewQ").onclick = () => openEditor();
   $("btnLoadSeed").onclick = loadSeed;
+  $("btnTemplate").onclick = downloadQuestionTemplate;
+  $("btnExportQuestions").onclick = exportQuestionsExcel;
+  $("btnImportQuestions").onclick = () => $("questionExcelFile").click();
+  $("questionExcelFile").onchange = importQuestionsExcel;
   $("btnCancelEdit").onclick = closeEditor;
   $("btnSaveQ").onclick = saveQuestion;
   $("btnDeleteQ").onclick = deleteQuestion;
@@ -703,4 +707,70 @@ async function loadSeed() {
   );
   await batch.commit();
   toast("v2.0 範例題目已加入");
+}
+
+
+const QUESTION_EXCEL_HEADERS = [
+  "題號", "分類", "題型", "題目", "選項1", "選項2", "選項3", "選項4", "選項5",
+  "選項6", "選項7", "選項8", "選項9", "選項10", "正確答案", "結果呈現",
+  "最小值", "最大值", "文字字數上限", "多選上限", "倒數秒數"
+];
+const TYPE_ALIASES = {
+  "單選題":"single", "單選":"single", single:"single",
+  "多選題":"multi", "多選":"multi", multi:"multi",
+  "文字雲":"wordcloud", wordcloud:"wordcloud",
+  "開放題":"open", "開放式":"open", open:"open",
+  "是非題":"yesno", "是非":"yesno", yesno:"yesno",
+  "表情":"emoji", emoji:"emoji",
+  "評分":"rating", rating:"rating",
+  "滑桿":"slider", slider:"slider",
+  "測驗題":"quiz", "測驗":"quiz", quiz:"quiz",
+  "排序題":"ranking", "排序":"ranking", ranking:"ranking"
+};
+const REVEAL_ALIASES = {
+  "投票結果":"results", results:"results", "搶答最快的人":"fastest", fastest:"fastest",
+  "正確／錯誤統計":"correctness", "正確/錯誤統計":"correctness", correctness:"correctness",
+  "排序結果":"ranking", ranking:"ranking", "平均分數":"average", average:"average",
+  "文字雲":"wordcloud", wordcloud:"wordcloud"
+};
+function ensureXlsx(){if(!window.XLSX){toast("Excel 元件尚未載入，請確認網路連線後重新整理");return false}return true}
+function questionRows(source=questions){return source.map((q,index)=>{
+  const row={"題號":index+1,"分類":q.part||"ESG × MM","題型":formatType(q.type),"題目":q.title||""};
+  (q.options||[]).slice(0,10).forEach((v,i)=>row[`選項${i+1}`]=v);
+  row["正確答案"]=Array.isArray(q.correctIndexes)?q.correctIndexes.map(i=>i+1).join(","):(Number.isInteger(q.correctIndex)?q.correctIndex+1:"");
+  row["結果呈現"]=REVEAL_LABELS[q.revealMode]||q.revealMode||"投票結果";
+  row["最小值"]=q.min??0; row["最大值"]=q.max??100; row["文字字數上限"]=q.wordLimit??"";
+  row["多選上限"]=q.maxSelections??""; row["倒數秒數"]=q.timerDuration??60; return row;
+})}
+function setSheetWidths(ws){ws["!cols"]=[{wch:7},{wch:16},{wch:13},{wch:42},...Array(10).fill({wch:20}),{wch:14},{wch:18},{wch:10},{wch:10},{wch:14},{wch:12},{wch:12}]}
+function buildQuestionWorkbook(rows){
+  const wb=XLSX.utils.book_new(), ws=XLSX.utils.json_to_sheet(rows,{header:QUESTION_EXCEL_HEADERS}); setSheetWidths(ws); XLSX.utils.book_append_sheet(wb,ws,"題目");
+  const instructions=[
+    ["欄位","填寫說明"],["題型","可填：單選題、多選題、文字雲、開放題、是非題、表情、評分、滑桿、測驗題、排序題"],
+    ["選項1～10","單選、多選、是非、測驗、排序至少填2個；其他題型可留白"],["正確答案","填選項編號，例如 2；多選題可填 1,3"],
+    ["結果呈現","投票結果、搶答最快的人、正確／錯誤統計、排序結果、平均分數、文字雲"],
+    ["最小值／最大值","僅滑桿題使用"],["文字字數上限","文字雲或開放題使用，建議 1～120"],["多選上限","多選題使用，不可超過選項數"],
+    ["倒數秒數","5～3600 秒，未填時預設 60 秒"],["匯入方式","匯入時會將 Excel 題目追加至現有題庫，不會刪除原題目"]
+  ];
+  const help=XLSX.utils.aoa_to_sheet(instructions);help["!cols"]=[{wch:20},{wch:75}];XLSX.utils.book_append_sheet(wb,help,"填寫說明");return wb;
+}
+function downloadQuestionTemplate(){if(!ensureXlsx())return;const sample=[{"題號":1,"分類":"ESG × MM","題型":"單選題","題目":"最想深入了解哪個 ESG 面向？","選項1":"環境 E","選項2":"社會 S","選項3":"治理 G","正確答案":"","結果呈現":"投票結果","最小值":0,"最大值":100,"文字字數上限":"","多選上限":"","倒數秒數":60}];XLSX.writeFile(buildQuestionWorkbook(sample),"題目匯入範本.xlsx");toast("已下載題目匯入範本")}
+function exportQuestionsExcel(){if(!ensureXlsx())return;if(!questions.length)return toast("目前沒有題目可匯出");XLSX.writeFile(buildQuestionWorkbook(questionRows()),`ESG-MM-題庫-${new Date().toISOString().slice(0,10)}.xlsx`);toast(`已匯出 ${questions.length} 題`)}
+function normalizeCell(v){return String(v??"").trim()}
+function parseCorrect(value,type,optionCount){const nums=normalizeCell(value).split(/[,，、;；\s]+/).filter(Boolean).map(x=>Number(x)-1).filter(x=>Number.isInteger(x)&&x>=0&&x<optionCount);return type==="multi"?{correctIndexes:[...new Set(nums)],correctIndex:null}:{correctIndex:nums.length?nums[0]:null,correctIndexes:null}}
+function parseImportedRow(row,rowNo){
+  const title=normalizeCell(row["題目"]), rawType=normalizeCell(row["題型"]), type=TYPE_ALIASES[rawType.toLowerCase()]||TYPE_ALIASES[rawType];
+  if(!title)return {error:`第 ${rowNo} 列：題目不可空白`}; if(!type)return {error:`第 ${rowNo} 列：無法辨識題型「${rawType}」`};
+  const opts=Array.from({length:10},(_,i)=>normalizeCell(row[`選項${i+1}`])).filter(Boolean);
+  if(["single","multi","yesno","quiz","ranking"].includes(type)&&opts.length<2)return {error:`第 ${rowNo} 列：此題型至少需要 2 個選項`};
+  const allowed=REVEAL_MODES_BY_TYPE[type]||["results"], rawReveal=normalizeCell(row["結果呈現"]), mapped=REVEAL_ALIASES[rawReveal.toLowerCase()]||REVEAL_ALIASES[rawReveal], revealMode=allowed.includes(mapped)?mapped:allowed[0];
+  const correct=parseCorrect(row["正確答案"],type,opts.length), min=Number(row["最小值"]), max=Number(row["最大值"]), wordLimit=clamp(Number(row["文字字數上限"])||20,1,120), maxSelections=clamp(Number(row["多選上限"])||2,1,Math.max(1,opts.length)), timerDuration=clamp(Number(row["倒數秒數"])||60,5,3600);
+  return {value:{part:normalizeCell(row["分類"])||"ESG × MM",type,title,options:opts,min:Number.isFinite(min)?min:0,max:Number.isFinite(max)?max:100,revealMode,...correct,wordLimit:["wordcloud","open"].includes(type)?wordLimit:null,maxSelections:type==="multi"?maxSelections:null,timerDuration}};
+}
+async function importQuestionsExcel(event){
+  const input=event.target,file=input.files?.[0];input.value="";if(!file||!ensureXlsx())return;
+  try{const data=await file.arrayBuffer(),wb=XLSX.read(data,{type:"array"}),ws=wb.Sheets["題目"]||wb.Sheets[wb.SheetNames[0]],rows=XLSX.utils.sheet_to_json(ws,{defval:""});if(!rows.length)return toast("Excel 中沒有可匯入的題目");
+    const parsed=rows.map((r,i)=>parseImportedRow(r,i+2)),errors=parsed.filter(x=>x.error).map(x=>x.error);if(errors.length){alert(`匯入失敗，請修正以下內容：\n\n${errors.slice(0,20).join("\n")}${errors.length>20?`\n…另有 ${errors.length-20} 筆錯誤`:""}`);return}
+    if(!confirm(`將追加匯入 ${parsed.length} 題至目前題庫，確定繼續？`))return;let base=(questions.at(-1)?.order??0);for(let start=0;start<parsed.length;start+=450){const batch=writeBatch(db);parsed.slice(start,start+450).forEach((item,i)=>batch.set(doc(questionsCol),{...item.value,order:base+start+i+1,createdAt:serverTimestamp()}));await batch.commit()}toast(`成功匯入 ${parsed.length} 題`);
+  }catch(error){console.error(error);toast(`匯入失敗：${friendlyError(error)}`)}
 }

@@ -179,12 +179,19 @@
                   <h2>題庫</h2>
                   <p class="muted drag-help">拖曳左側把手可調整題目順序</p>
                 </div>
-                <div class="row">
-                  <button id="btnLoadSeed" class="button ghost small">
+                <div class="row question-tools">
+                  <button id="btnTemplate" class="button ghost small">
+                    下載匯入範本</button
+                  ><button id="btnImportQuestions" class="button ghost small">
+                    匯入 Excel</button
+                  ><button id="btnExportQuestions" class="button ghost small">
+                    匯出 Excel</button
+                  ><button id="btnLoadSeed" class="button ghost small">
                     載入範例</button
                   ><button id="btnNewQ" class="button primary small">
                     ＋ 新增題目
                   </button>
+                  <input id="questionExcelFile" type="file" accept=".xlsx,.xls" hidden />
                 </div>
               </div>
               <div id="qList" class="question-list"></div>
@@ -276,6 +283,7 @@
       </form>
     </dialog>
     <div id="toast" class="toast"></div>
-    <script type="module" src="js/admin.js?v=2.9.4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script type="module" src="js/admin.js?v=2.10.0"></script>
   </body>
 </html>
