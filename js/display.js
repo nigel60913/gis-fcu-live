@@ -2,7 +2,7 @@ import { db, doc, collection, onSnapshot } from "./firebase.js";
 import { escapeHtml, formatType } from "./utils.js";
 import { bindNetworkStatus } from "./ui.js";
 import { renderWordCloud, tallyWords } from "./wordcloud.js";
-import { createDisplayAudio } from "./display-audio.js?v=2.9.5";
+import { createDisplayAudio } from "./display-audio.js?v=2.9.6";
 const screen = document.getElementById("screen"),
   displayTheme = document.getElementById("displayTheme"),
   sessionRef = doc(db, "session", "current");
@@ -12,9 +12,11 @@ let session = { state: "idle" },
   uq,
   ur,
   wordCloudResize,
+  wordCloudObserver,
   timerTicker;
 bindNetworkStatus();
 const displayAudio = createDisplayAudio();
+addEventListener("resize", () => wordCloudResize?.());
 onSnapshot(sessionRef, (s) => {
   session = s.exists() ? s.data() : { state: "idle" };
   displayAudio.sync(session);
@@ -295,16 +297,19 @@ function words() {
     const canvas = document.getElementById("wordCloudCanvas");
     if (canvas) renderWordCloud(canvas, cloud);
   };
+  // Always replace the callback so incoming votes redraw the newest data.
+  wordCloudResize = () => {
+    clearTimeout(wordCloudResize.timer);
+    wordCloudResize.timer = setTimeout(draw, 80);
+  };
   (document.fonts?.ready || Promise.resolve()).then(() =>
-    requestAnimationFrame(draw),
+    requestAnimationFrame(() => requestAnimationFrame(draw)),
   );
-  if (!wordCloudResize) {
-    wordCloudResize = () => {
-      clearTimeout(wordCloudResize.timer);
-      wordCloudResize.timer = setTimeout(draw, 120);
-    };
-    addEventListener("resize", wordCloudResize);
+  if (!wordCloudObserver && window.ResizeObserver) {
+    wordCloudObserver = new ResizeObserver(() => wordCloudResize?.());
   }
+  const canvas = document.getElementById("wordCloudCanvas");
+  if (canvas && wordCloudObserver) wordCloudObserver.observe(canvas);
 }
 function lottery() {
   const pool = responses.filter((r) => r.nickname);
