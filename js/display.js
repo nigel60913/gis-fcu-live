@@ -2,7 +2,7 @@ import { db, doc, collection, onSnapshot } from "./firebase.js";
 import { escapeHtml, formatType } from "./utils.js";
 import { bindNetworkStatus } from "./ui.js";
 import { renderWordCloud, tallyWords } from "./wordcloud.js";
-import { createDisplayAudio } from "./display-audio.js?v=2.9.6";
+import { createDisplayAudio } from "./display-audio.js?v=2.9.7";
 const screen = document.getElementById("screen"),
   displayTheme = document.getElementById("displayTheme"),
   sessionRef = doc(db, "session", "current");

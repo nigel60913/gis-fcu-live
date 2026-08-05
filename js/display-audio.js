@@ -33,6 +33,7 @@ const NOTES = {
 export function createDisplayAudio() {
   const VOLUME_KEY = "gisDisplayAudioVolume";
   const LOBBY_MUSIC_URL = "assets/audio/lobby.mp3";
+  const RESULTS_MUSIC_URL = "assets/audio/happy-upbeat-results.mp3";
   const COUNTDOWN_MUSIC_URLS = {
     15: "assets/audio/15.mp3",
     30: "assets/audio/30.mp3",
@@ -59,6 +60,7 @@ export function createDisplayAudio() {
   let loopTimer;
   let beat = 0;
   let lastRevealMode = "";
+  let activeBackgroundMusicUrl = LOBBY_MUSIC_URL;
   const { button, slider, valueLabel } = makeControls();
 
   function makeControls() {
@@ -276,7 +278,15 @@ export function createDisplayAudio() {
     }
     const now = context.currentTime;
     const isLobby = mode === "lobby";
-    resultsMusic.playbackRate = isLobby ? 1.06 : 1.1;
+    const desiredMusicUrl = isLobby ? LOBBY_MUSIC_URL : RESULTS_MUSIC_URL;
+    if (activeBackgroundMusicUrl !== desiredMusicUrl) {
+      resultsMusic.pause();
+      resultsMusic.currentTime = 0;
+      resultsMusic.src = desiredMusicUrl;
+      resultsMusic.load();
+      activeBackgroundMusicUrl = desiredMusicUrl;
+    }
+    resultsMusic.playbackRate = isLobby ? 1.06 : 1;
     resultsMusicGain.gain.cancelScheduledValues(now);
     resultsMusicGain.gain.setValueAtTime(
       Math.max(0.0001, resultsMusicGain.gain.value),
