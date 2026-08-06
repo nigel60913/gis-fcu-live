@@ -4,6 +4,8 @@ import { bindNetworkStatus } from "./ui.js";
 import { renderWordCloud, tallyWords } from "./wordcloud.js";
 import { createDisplayAudio } from "./display-audio.js?v=2.9.8";
 const screen = document.getElementById("screen"),
+  lotteryApp = document.getElementById("lotteryApp"),
+  lotteryTheme = document.getElementById("lotteryTheme"),
   displayTheme = document.getElementById("displayTheme"),
   sessionRef = doc(db, "session", "current");
 let session = { state: "idle" },
@@ -28,6 +30,7 @@ function load() {
   question = null;
   responses = [];
   if (session.state === "lottery") return lottery();
+  hideLottery();
   if (!session.activeQuestionId) return idle();
   loading();
   uq = onSnapshot(doc(db, "questions", session.activeQuestionId), (s) => {
@@ -312,17 +315,18 @@ function words() {
   const canvas = document.getElementById("wordCloudCanvas");
   if (canvas && wordCloudObserver) wordCloudObserver.observe(canvas);
 }
+function hideLottery() {
+  document.body.classList.remove("lottery-mode");
+  if (lotteryApp) lotteryApp.hidden = true;
+  if (lotteryTheme) lotteryTheme.disabled = true;
+  screen.hidden = false;
+}
 function lottery() {
   clearInterval(timerTicker);
   displayTheme.disabled = true;
   displayAudio.sync({ state: "lottery", activeQuestionId: null });
-  screen.innerHTML = `
-    <section class="display-lottery-embed" aria-label="集團福利點數幸運抽獎">
-      <iframe
-        class="display-lottery-frame"
-        src="lottery.html?embedded=1"
-        title="集團福利點數幸運抽獎"
-        allow="autoplay"
-      ></iframe>
-    </section>`;
+  screen.hidden = true;
+  if (lotteryTheme) lotteryTheme.disabled = false;
+  if (lotteryApp) lotteryApp.hidden = false;
+  document.body.classList.add("lottery-mode");
 }

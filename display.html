@@ -1,28 +1,122 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="zh-Hant">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="theme-color" content="#073B5C" />
-    <title>ESG × MM｜Live Display</title>
-    <link rel="icon" href="assets/logo.png" />
-    <link rel="stylesheet" href="css/v2.css?v=2.9.9" />
-    <link
-      id="displayTheme"
-      rel="stylesheet"
-      href="css/display.css?v=2.9.6"
-      disabled
-    />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  </head>
-  <body class="display-body">
-    <div id="network" class="network" hidden></div>
-    <main id="screen" class="display-screen">
-      <div class="display-loading">
-        <span class="spinner"></span>
-        <p>正在連接 Live Session</p>
-      </div>
-    </main>
-    <script type="module" src="js/display.js?v=2.9.9"></script>
-  </body>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="#073B5C" name="theme-color"/>
+<title>ESG × MM｜Live Display</title>
+<link href="assets/logo.png" rel="icon"/>
+<link href="css/v2.css?v=2.9.9" rel="stylesheet"/>
+<link disabled="" href="css/display.css?v=2.9.6" id="displayTheme" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link disabled="" href="css/lottery.css?v=1.1.2" id="lotteryTheme" rel="stylesheet"/></head>
+<body class="display-body">
+<div class="network" hidden="" id="network"></div>
+<main class="display-screen" id="screen">
+<div class="display-loading">
+<span class="spinner"></span>
+<p>正在連接 Live Session</p>
+</div>
+</main><main class="lottery-app" hidden="" id="lotteryApp">
+<section class="access-gate" id="accessGate">
+<div class="gate-card">
+<img alt="GIS.FCU" src="assets/logo.png"/>
+<span>LUCKY DRAW</span>
+<h1>正在確認主持人權限</h1>
+<p id="gateMessage">請稍候，系統正在連接活動資料。</p>
+<a hidden="" href="admin.html" id="backToAdmin">返回主持控制台</a>
+</div>
+</section>
+<section class="lottery-stage" hidden="" id="lotteryStage">
+<div aria-hidden="true" class="lottery-aurora"><i></i><i></i><i></i></div>
+<header class="lottery-header">
+<div class="lottery-brand">
+<img alt="GIS.FCU" src="assets/logo.png"/>
+<div><strong>ESG × MM</strong><small>GROUP BENEFITS LUCKY DRAW</small></div>
+</div>
+<div class="header-actions">
+<a class="guide-link" href="admin.html">← 返回 Admin</a>
+<label class="volume-control" title="抽獎音量">
+<button aria-label="靜音抽獎音效" class="mute-button" id="btnMute" type="button">🔊</button>
+<input aria-label="抽獎音量" id="volumeSlider" max="100" min="0" step="1" type="range" value="70"/>
+<output id="volumeValue">70%</output>
+</label>
+</div>
+</header>
+<section class="intro-view" id="introView">
+<div class="intro-copy">
+<span class="kicker">福利獎勵更多元・運用更彈性</span>
+<h1>集團福利點數<br/><em>幸運抽獎</em></h1>
+<ul class="intro-text benefit-copy">
+<li>集團福利點數可透過活動參與、優良表現或公司獎勵取得。</li>
+<li>點數可匯入個人的有福企小樹點帳戶。</li>
+<li>小樹點可運用於餐飲、購物、票券、旅遊及其他合作福利服務。</li>
+<li>實際點數發放與使用規則依公司及集團公告為準。</li>
+</ul>
+<div aria-label="集團點一點等於小樹點一點等於新臺幣一元" class="point-equation">
+<article><span class="point-icon">P</span><strong>集團點 1 點</strong></article>
+<b>=</b>
+<article><span class="leaf-icon">◆</span><strong>小樹點 1 點</strong></article>
+<b>=</b>
+<article><span class="coin-icon">1</span><strong>新臺幣 1 元</strong></article>
+</div>
+<div aria-live="polite" class="draw-summary">
+<article><span>已讀取答題紀錄數</span><strong id="recordCount">讀取中</strong></article>
+<article><span>去重後有效參與者數</span><strong id="participantCount">讀取中</strong></article>
+<article><span>預計抽出人數</span><strong id="winnerCount">—</strong></article>
+</div>
+<div class="intro-actions">
+<button class="draw-button" disabled="" id="btnDraw">
+<span>✦</span><strong>開始抽獎</strong><small>5 秒後一次公布 20 位</small>
+</button>
+<button class="secondary-button" id="btnReload">重新讀取名單</button>
+</div>
+<p class="pool-message" id="poolMessage">正在彙整全部題目的答題者資料…</p>
+</div>
+<aside aria-label="集團福利點數機制" class="benefit-card">
+<div class="benefit-orbit"><i></i><i></i><i></i></div>
+<div class="benefit-logo">P</div>
+<h2>點數如何運作？</h2>
+<ol>
+<li><b>01</b><span><strong>獲得集團點</strong>參與活動、優良表現或公司獎勵</span></li>
+<li><b>02</b><span><strong>匯入小樹點</strong>點數進入個人有福企小樹點帳戶</span></li>
+<li><b>03</b><span><strong>自由使用</strong>餐飲、購物、旅遊、票券與多元福利</span></li>
+</ol>
+<p>福利不再只有一種選擇</p>
+</aside>
+</section>
+<section aria-live="polite" class="drawing-view" hidden="" id="drawingView">
+<span class="kicker">LUCKY DRAW IN PROGRESS</span>
+<h1 id="drawStatus">幸運名單抽選中</h1>
+<div class="drawing-core">
+<div aria-hidden="true" class="draw-rings"><i></i><i></i><i></i></div>
+<div class="draw-countdown" id="drawCountdown">5</div>
+<span>秒後揭曉</span>
+</div>
+<div class="rolling-names" id="rollingNames"></div>
+<p>系統正在從全部答題者中隨機抽選，得獎者不重複。</p>
+</section>
+<section aria-live="assertive" class="result-view" hidden="" id="resultView">
+<div aria-hidden="true" class="confetti" id="confetti"></div>
+<div class="result-head">
+<div>
+<span class="kicker">CONGRATULATIONS</span>
+<h1>恭喜本次得獎者</h1>
+<p id="resultMeta">共 20 位幸運得主</p>
+</div>
+<div class="result-actions">
+<button class="export-button" disabled="" id="btnExport">↓ 匯出得獎名單 CSV</button>
+<button class="secondary-button" id="btnDrawAgain">重新抽獎</button>
+</div>
+</div>
+<div class="winner-grid" id="winnerGrid"></div>
+<footer class="result-footer">
+<span>集團點 1 點</span><b>=</b><span>小樹點 1 點</span><b>=</b><span>新臺幣 1 元</span>
+</footer>
+</section>
+</section>
+</main>
+<script src="js/lottery.js?v=1.1.2" type="module"></script><script src="js/display.js?v=2.9.9" type="module"></script>
+</body>
 </html>

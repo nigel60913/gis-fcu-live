@@ -7,7 +7,7 @@ const DRAW_DURATION_MS = 5000;
 const VOLUME_KEY = "gisfcu_lottery_volume";
 const $ = (id) => document.getElementById(id);
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const embedded = new URLSearchParams(location.search).get("embedded") === "1";
+const embedded = new URLSearchParams(location.search).get("embedded") === "1" || document.body.classList.contains("display-body");
 let participants = [];
 let winners = [];
 let drawStartedAt = null;
