@@ -204,7 +204,8 @@ async function startVoting() {
   toast(`投票已開始，${seconds} 秒後截止`);
 }
 async function changeState(state) {
-  if (!session.activeQuestionId) return toast("請先選擇題目");
+  if (state !== "lottery" && !session.activeQuestionId)
+    return toast("請先選擇題目");
   await updateDoc(sessionRef, {
     state,
     timerEndsAt: null,

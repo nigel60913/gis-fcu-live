@@ -27,6 +27,7 @@ function load() {
   ur?.();
   question = null;
   responses = [];
+  if (session.state === "lottery") return lottery();
   if (!session.activeQuestionId) return idle();
   loading();
   uq = onSnapshot(doc(db, "questions", session.activeQuestionId), (s) => {
@@ -312,21 +313,11 @@ function words() {
   if (canvas && wordCloudObserver) wordCloudObserver.observe(canvas);
 }
 function lottery() {
-  const pool = responses.filter((r) => r.nickname);
-  if (!pool.length)
-    return shell(
-      '<div class="display-idle"><h2>還沒有可抽選的參與者</h2></div>',
-    );
-  const winner = pool[Math.floor(Math.random() * pool.length)],
-    winnerName = String(winner.nickname || ""),
-    winnerNameLength = Array.from(winnerName).length,
-    winnerSizeClass =
-      winnerNameLength > 10
-        ? "is-very-long"
-        : winnerNameLength > 6
-          ? "is-long"
-          : "";
-  shell(
-    `<div class="display-idle lottery-card"><span class="eyebrow">LUCKY DRAW</span><p class="muted">恭喜本次幸運得主</p><div class="lottery-winner ${winnerSizeClass}">${escapeHtml(winnerName)}</div></div>`,
-  );
+  displayTheme.disabled = false;
+  // Keep display.html as the projector's top-level page while mounting the
+  // complete draw experience inside it. The embedded mode omits the separate
+  // host login gate because only an authenticated admin can set this state.
+  if (document.getElementById("displayLottery")) return;
+  screen.innerHTML =
+    '<iframe id="displayLottery" class="display-lottery-frame" src="lottery.html?display=1" title="集團福利點數抽獎畫面" allow="autoplay"></iframe>';
 }
