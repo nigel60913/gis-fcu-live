@@ -119,12 +119,11 @@ function wireStatic() {
   $("btnClearResponses").onclick = clearResponses;
   $("btnDownloadResponses").onclick = downloadResponses;
   $("btnForceRelogin").onclick = forceAudienceRelogin;
-  $("btnLottery").onclick = () =>
-    updateDoc(sessionRef, {
-      state: "lottery",
-      timerEndsAt: null,
-      timerDuration: null,
-    });
+  $("btnLottery").onclick = () => {
+    const lotteryWindow = window.open(lotteryUrl(), "_blank");
+    if (lotteryWindow) lotteryWindow.opener = null;
+    else toast("瀏覽器已阻擋新視窗，請允許彈出視窗後再試一次");
+  };
   $("btnNewQ").onclick = () => openEditor();
   $("btnLoadSeed").onclick = loadSeed;
   $("btnTemplate").onclick = downloadQuestionTemplate;
@@ -168,6 +167,9 @@ function audienceUrl() {
 }
 function displayUrl() {
   return location.href.replace(/admin\.html.*$/, "display.html");
+}
+function lotteryUrl() {
+  return location.href.replace(/admin\.html.*$/, "lottery.html");
 }
 function renderQr() {
   const box = $("qrcode");

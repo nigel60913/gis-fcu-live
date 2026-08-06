@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0d5b43" />
+    <title>ESG × MM｜集團福利點數抽獎</title>
+    <link rel="icon" href="assets/logo.png" />
+    <link rel="stylesheet" href="css/lottery.css?v=1.0.1" />
+  </head>
+  <body>
+    <div id="network" class="network" hidden></div>
+    <main id="lotteryApp" class="lottery-app">
+      <section id="accessGate" class="access-gate">
+        <div class="gate-card">
+          <img src="assets/logo.png" alt="GIS.FCU" />
+          <span>LUCKY DRAW</span>
+          <h1>正在確認主持人權限</h1>
+          <p id="gateMessage">請稍候，系統正在連接活動資料。</p>
+          <a id="backToAdmin" href="admin.html" hidden>返回主持控制台</a>
+        </div>
+      </section>
+
+      <section id="lotteryStage" class="lottery-stage" hidden>
+        <div class="lottery-aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+        <header class="lottery-header">
+          <div class="lottery-brand">
+            <img src="assets/logo.png" alt="GIS.FCU" />
+            <div><strong>ESG × MM</strong><small>GROUP BENEFITS LUCKY DRAW</small></div>
+          </div>
+          <div class="header-actions">
+            <label class="volume-control" title="抽獎音量">
+              <span>🔊</span>
+              <input id="volumeSlider" type="range" min="0" max="100" step="1" value="70" aria-label="抽獎音量" />
+              <output id="volumeValue">70%</output>
+            </label>
+          </div>
+        </header>
+
+        <section id="introView" class="intro-view">
+          <div class="intro-copy">
+            <span class="kicker">福利獎勵更多元・運用更彈性</span>
+            <h1>集團福利點數<br /><em>幸運抽獎</em></h1>
+            <p class="intro-text">
+              同仁可透過參與活動、優良表現等方式獲得集團點數，點數匯入有福企平台後，可自由選擇商品、票券、特約優惠及多元福利服務。
+            </p>
+            <div class="point-equation" aria-label="集團點一點等於小樹點一點等於新臺幣一元">
+              <article><span class="point-icon">P</span><strong>集團點 1 點</strong></article>
+              <b>=</b>
+              <article><span class="leaf-icon">◆</span><strong>小樹點 1 點</strong></article>
+              <b>=</b>
+              <article><span class="coin-icon">1</span><strong>新臺幣 1 元</strong></article>
+            </div>
+            <div class="draw-summary">
+              <article><span>目前可抽獎人數</span><strong id="participantCount">讀取中</strong></article>
+              <article><span>本次得獎名額</span><strong>20 位</strong></article>
+              <article><span>抽選原則</span><strong>全題答題者・不重複</strong></article>
+            </div>
+            <div class="intro-actions">
+              <button id="btnDraw" class="draw-button" disabled>
+                <span>✦</span><strong>開始抽獎</strong><small>5 秒後一次公布 20 位</small>
+              </button>
+              <button id="btnReload" class="secondary-button">重新讀取答題者</button>
+            </div>
+            <p id="poolMessage" class="pool-message">正在彙整全部題目的答題者資料…</p>
+          </div>
+          <aside class="benefit-card" aria-label="集團福利點數機制">
+            <div class="benefit-orbit"><i></i><i></i><i></i></div>
+            <div class="benefit-logo">P</div>
+            <h2>點數如何運作？</h2>
+            <ol>
+              <li><b>01</b><span><strong>獲得集團點</strong>參與活動、優良表現或公司獎勵</span></li>
+              <li><b>02</b><span><strong>匯入小樹點</strong>點數進入個人有福企小樹點帳戶</span></li>
+              <li><b>03</b><span><strong>自由使用</strong>餐飲、購物、旅遊、票券與多元福利</span></li>
+            </ol>
+            <p>福利不再只有一種選擇</p>
+          </aside>
+        </section>
+
+        <section id="drawingView" class="drawing-view" hidden aria-live="polite">
+          <span class="kicker">LUCKY DRAW IN PROGRESS</span>
+          <h1>幸運名單抽選中</h1>
+          <div class="drawing-core">
+            <div class="draw-rings" aria-hidden="true"><i></i><i></i><i></i></div>
+            <div id="drawCountdown" class="draw-countdown">5</div>
+            <span>秒後揭曉</span>
+          </div>
+          <div id="rollingNames" class="rolling-names"></div>
+          <p>系統正在從全部答題者中隨機抽選，得獎者不重複。</p>
+        </section>
+
+        <section id="resultView" class="result-view" hidden aria-live="assertive">
+          <div id="confetti" class="confetti" aria-hidden="true"></div>
+          <div class="result-head">
+            <div>
+              <span class="kicker">CONGRATULATIONS</span>
+              <h1>恭喜本次得獎者</h1>
+              <p id="resultMeta">共 20 位幸運得主</p>
+            </div>
+            <div class="result-actions">
+              <button id="btnExport" class="export-button">↓ 匯出得獎名單 CSV</button>
+              <button id="btnDrawAgain" class="secondary-button">重新抽獎</button>
+            </div>
+          </div>
+          <div id="winnerGrid" class="winner-grid"></div>
+          <footer class="result-footer">
+            <span>集團點 1 點</span><b>=</b><span>小樹點 1 點</span><b>=</b><span>新臺幣 1 元</span>
+          </footer>
+        </section>
+      </section>
+    </main>
+    <script type="module" src="js/lottery.js?v=1.0.1"></script>
+  </body>
+</html>
