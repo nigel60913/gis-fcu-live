@@ -6,9 +6,14 @@
     <meta name="theme-color" content="#0d5b43" />
     <title>ESG × MM｜集團福利點數抽獎</title>
     <link rel="icon" href="assets/logo.png" />
-    <link rel="stylesheet" href="css/lottery.css?v=1.1.0" />
+    <link rel="stylesheet" href="css/lottery.css?v=1.1.1" />
   </head>
   <body>
+    <script>
+      if (new URLSearchParams(location.search).get("embedded") === "1") {
+        document.documentElement.classList.add("is-embedded");
+      }
+    </script>
     <div id="network" class="network" hidden></div>
     <main id="lotteryApp" class="lottery-app">
       <section id="accessGate" class="access-gate">
@@ -113,6 +118,6 @@
         </section>
       </section>
     </main>
-    <script type="module" src="js/lottery.js?v=1.1.0"></script>
+    <script type="module" src="js/lottery.js?v=1.1.1"></script>
   </body>
 </html>

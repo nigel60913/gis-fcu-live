@@ -27,6 +27,7 @@ function load() {
   ur?.();
   question = null;
   responses = [];
+  if (session.state === "lottery") return lottery();
   if (!session.activeQuestionId) return idle();
   loading();
   uq = onSnapshot(doc(db, "questions", session.activeQuestionId), (s) => {
@@ -312,21 +313,16 @@ function words() {
   if (canvas && wordCloudObserver) wordCloudObserver.observe(canvas);
 }
 function lottery() {
-  const pool = responses.filter((r) => r.nickname);
-  if (!pool.length)
-    return shell(
-      '<div class="display-idle"><h2>還沒有可抽選的參與者</h2></div>',
-    );
-  const winner = pool[Math.floor(Math.random() * pool.length)],
-    winnerName = String(winner.nickname || ""),
-    winnerNameLength = Array.from(winnerName).length,
-    winnerSizeClass =
-      winnerNameLength > 10
-        ? "is-very-long"
-        : winnerNameLength > 6
-          ? "is-long"
-          : "";
-  shell(
-    `<div class="display-idle lottery-card"><span class="eyebrow">LUCKY DRAW</span><p class="muted">恭喜本次幸運得主</p><div class="lottery-winner ${winnerSizeClass}">${escapeHtml(winnerName)}</div></div>`,
-  );
+  clearInterval(timerTicker);
+  displayTheme.disabled = true;
+  displayAudio.sync({ state: "lottery", activeQuestionId: null });
+  screen.innerHTML = `
+    <section class="display-lottery-embed" aria-label="集團福利點數幸運抽獎">
+      <iframe
+        class="display-lottery-frame"
+        src="lottery.html?embedded=1"
+        title="集團福利點數幸運抽獎"
+        allow="autoplay"
+      ></iframe>
+    </section>`;
 }

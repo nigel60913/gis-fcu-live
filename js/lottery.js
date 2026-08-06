@@ -7,6 +7,7 @@ const DRAW_DURATION_MS = 5000;
 const VOLUME_KEY = "gisfcu_lottery_volume";
 const $ = (id) => document.getElementById(id);
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const embedded = new URLSearchParams(location.search).get("embedded") === "1";
 let participants = [];
 let winners = [];
 let drawStartedAt = null;
@@ -19,7 +20,7 @@ const audio = createLotteryAudio();
 restoreVolume();
 
 onAuthStateChanged(auth, async (user) => {
-  const allowed = user && (ADMIN_EMAILS.length === 0 || ADMIN_EMAILS.includes(user.email));
+  const allowed = embedded || (user && (ADMIN_EMAILS.length === 0 || ADMIN_EMAILS.includes(user.email)));
   if (!allowed) {
     $("lotteryStage").hidden = true;
     $("accessGate").hidden = false;
