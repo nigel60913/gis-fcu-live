@@ -2,9 +2,11 @@ import { db, doc, collection, onSnapshot } from "./firebase.js";
 import { escapeHtml, formatType } from "./utils.js";
 import { bindNetworkStatus } from "./ui.js";
 import { renderWordCloud, tallyWords } from "./wordcloud.js";
-import { createDisplayAudio } from "./display-audio.js?v=2.9.7";
+import { createDisplayAudio } from "./display-audio.js?v=2.9.8";
+import { bootEmbeddedLottery } from "./lottery.js?v=1.3.0";
 const screen = document.getElementById("screen"),
   displayTheme = document.getElementById("displayTheme"),
+  lotteryTheme = document.getElementById("lotteryTheme"),
   sessionRef = doc(db, "session", "current");
 let session = { state: "idle" },
   question = null,
@@ -27,6 +29,9 @@ function load() {
   ur?.();
   question = null;
   responses = [];
+  if (session.state === "lottery") return lottery();
+  lotteryTheme.disabled = true;
+  document.body.classList.remove("embedded-display");
   if (!session.activeQuestionId) return idle();
   loading();
   uq = onSnapshot(doc(db, "questions", session.activeQuestionId), (s) => {
@@ -312,21 +317,10 @@ function words() {
   if (canvas && wordCloudObserver) wordCloudObserver.observe(canvas);
 }
 function lottery() {
-  const pool = responses.filter((r) => r.nickname);
-  if (!pool.length)
-    return shell(
-      '<div class="display-idle"><h2>還沒有可抽選的參與者</h2></div>',
-    );
-  const winner = pool[Math.floor(Math.random() * pool.length)],
-    winnerName = String(winner.nickname || ""),
-    winnerNameLength = Array.from(winnerName).length,
-    winnerSizeClass =
-      winnerNameLength > 10
-        ? "is-very-long"
-        : winnerNameLength > 6
-          ? "is-long"
-          : "";
-  shell(
-    `<div class="display-idle lottery-card"><span class="eyebrow">LUCKY DRAW</span><p class="muted">恭喜本次幸運得主</p><div class="lottery-winner ${winnerSizeClass}">${escapeHtml(winnerName)}</div></div>`,
-  );
+  displayTheme.disabled = false;
+  lotteryTheme.disabled = false;
+  if (document.getElementById("lotteryStage")) return;
+  const template = document.getElementById("displayLotteryTemplate");
+  screen.replaceChildren(template.content.cloneNode(true));
+  bootEmbeddedLottery().catch((error) => console.error("Lottery failed to load", error));
 }

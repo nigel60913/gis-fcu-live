@@ -13,12 +13,32 @@ let drawStartedAt = null;
 let drawing = false;
 let pageBooted = false;
 let responseCount = 0;
+let audio;
 
-bindNetworkStatus();
-const audio = createLotteryAudio();
-restoreVolume();
+function initializeLottery() {
+  participants = [];
+  winners = [];
+  drawStartedAt = null;
+  drawing = false;
+  responseCount = 0;
+  audio = createLotteryAudio();
+  restoreVolume();
+  wireEvents();
+  return loadParticipants();
+}
 
-onAuthStateChanged(auth, async (user) => {
+export async function bootEmbeddedLottery() {
+  document.body.classList.add("embedded-display");
+  $("lotteryStage").hidden = false;
+  pageBooted = true;
+  await initializeLottery();
+  // Display audio owns the projected answer-reveal track and volume controls.
+  audio.setVolume(0);
+}
+
+if ($("lotteryApp")) {
+  bindNetworkStatus();
+  onAuthStateChanged(auth, async (user) => {
   const allowed = user && (ADMIN_EMAILS.length === 0 || ADMIN_EMAILS.includes(user.email));
   if (!allowed) {
     $("lotteryStage").hidden = true;
@@ -33,9 +53,9 @@ onAuthStateChanged(auth, async (user) => {
   $("lotteryStage").hidden = false;
   if (pageBooted) return;
   pageBooted = true;
-  wireEvents();
-  await loadParticipants();
-});
+  await initializeLottery();
+  });
+}
 
 function wireEvents() {
   $("btnDraw").onclick = () => startDraw(false);

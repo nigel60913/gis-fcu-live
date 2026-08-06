@@ -574,6 +574,7 @@ body.display-body {
 .lottery-winner.is-very-long {
   font-size: clamp(38px, 4.3vw, 68px);
 }
+
 .bar-row {
   grid-template-columns: minmax(210px, 1.25fr) minmax(280px, 4.4fr) minmax(
       72px,
