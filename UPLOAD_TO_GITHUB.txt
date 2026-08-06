@@ -1,0 +1,14 @@
+請注意：不要只把 ZIP 檔上傳到 GitHub。
+
+正確方式：
+1. 先在電腦解壓縮本 ZIP。
+2. 進入解壓後資料夾，全選裡面的所有檔案與資料夾。
+3. 上傳到 GitHub repository 的最外層（與目前 display.html、admin.html 同一層）。
+4. 選擇覆蓋 display.html、admin.html、lottery.html、js、css 等檔案。
+5. Commit changes。
+6. 等 GitHub Actions Pages 部署完成後，開啟 display.html 並按 Ctrl+F5。
+
+驗證：
+- 後台按鈕文字應為「✦ 顯示抽獎畫面」。
+- lottery.html 即使被開啟，也會立刻返回 display.html。
+- display.html 原始碼含 BUILD: DISPLAY-LOTTERY-INTEGRATED-2.10.0。
