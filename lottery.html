@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0d5b43" />
     <title>ESG × MM｜集團福利點數抽獎</title>
     <link rel="icon" href="assets/logo.png" />
-    <link rel="stylesheet" href="css/lottery.css?v=1.0.1" />
+    <link rel="stylesheet" href="css/lottery.css?v=1.1.0" />
   </head>
   <body>
     <div id="network" class="network" hidden></div>
@@ -29,8 +29,9 @@
             <div><strong>ESG × MM</strong><small>GROUP BENEFITS LUCKY DRAW</small></div>
           </div>
           <div class="header-actions">
+            <a class="guide-link" href="admin.html">← 返回 Admin</a>
             <label class="volume-control" title="抽獎音量">
-              <span>🔊</span>
+              <button id="btnMute" type="button" class="mute-button" aria-label="靜音抽獎音效">🔊</button>
               <input id="volumeSlider" type="range" min="0" max="100" step="1" value="70" aria-label="抽獎音量" />
               <output id="volumeValue">70%</output>
             </label>
@@ -41,9 +42,12 @@
           <div class="intro-copy">
             <span class="kicker">福利獎勵更多元・運用更彈性</span>
             <h1>集團福利點數<br /><em>幸運抽獎</em></h1>
-            <p class="intro-text">
-              同仁可透過參與活動、優良表現等方式獲得集團點數，點數匯入有福企平台後，可自由選擇商品、票券、特約優惠及多元福利服務。
-            </p>
+            <ul class="intro-text benefit-copy">
+              <li>集團福利點數可透過活動參與、優良表現或公司獎勵取得。</li>
+              <li>點數可匯入個人的有福企小樹點帳戶。</li>
+              <li>小樹點可運用於餐飲、購物、票券、旅遊及其他合作福利服務。</li>
+              <li>實際點數發放與使用規則依公司及集團公告為準。</li>
+            </ul>
             <div class="point-equation" aria-label="集團點一點等於小樹點一點等於新臺幣一元">
               <article><span class="point-icon">P</span><strong>集團點 1 點</strong></article>
               <b>=</b>
@@ -51,16 +55,16 @@
               <b>=</b>
               <article><span class="coin-icon">1</span><strong>新臺幣 1 元</strong></article>
             </div>
-            <div class="draw-summary">
-              <article><span>目前可抽獎人數</span><strong id="participantCount">讀取中</strong></article>
-              <article><span>本次得獎名額</span><strong>20 位</strong></article>
-              <article><span>抽選原則</span><strong>全題答題者・不重複</strong></article>
+            <div class="draw-summary" aria-live="polite">
+              <article><span>已讀取答題紀錄數</span><strong id="recordCount">讀取中</strong></article>
+              <article><span>去重後有效參與者數</span><strong id="participantCount">讀取中</strong></article>
+              <article><span>預計抽出人數</span><strong id="winnerCount">—</strong></article>
             </div>
             <div class="intro-actions">
               <button id="btnDraw" class="draw-button" disabled>
                 <span>✦</span><strong>開始抽獎</strong><small>5 秒後一次公布 20 位</small>
               </button>
-              <button id="btnReload" class="secondary-button">重新讀取答題者</button>
+              <button id="btnReload" class="secondary-button">重新讀取名單</button>
             </div>
             <p id="poolMessage" class="pool-message">正在彙整全部題目的答題者資料…</p>
           </div>
@@ -79,7 +83,7 @@
 
         <section id="drawingView" class="drawing-view" hidden aria-live="polite">
           <span class="kicker">LUCKY DRAW IN PROGRESS</span>
-          <h1>幸運名單抽選中</h1>
+          <h1 id="drawStatus">幸運名單抽選中</h1>
           <div class="drawing-core">
             <div class="draw-rings" aria-hidden="true"><i></i><i></i><i></i></div>
             <div id="drawCountdown" class="draw-countdown">5</div>
@@ -98,7 +102,7 @@
               <p id="resultMeta">共 20 位幸運得主</p>
             </div>
             <div class="result-actions">
-              <button id="btnExport" class="export-button">↓ 匯出得獎名單 CSV</button>
+              <button id="btnExport" class="export-button" disabled>↓ 匯出得獎名單 CSV</button>
               <button id="btnDrawAgain" class="secondary-button">重新抽獎</button>
             </div>
           </div>
@@ -109,6 +113,6 @@
         </section>
       </section>
     </main>
-    <script type="module" src="js/lottery.js?v=1.0.1"></script>
+    <script type="module" src="js/lottery.js?v=1.1.0"></script>
   </body>
 </html>
