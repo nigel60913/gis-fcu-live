@@ -25,6 +25,7 @@ body {
     linear-gradient(135deg, #fffdf3 0%, #effcf5 48%, #eaf7ff 100%);
   overflow-x: hidden;
 }
+body.embedded-display .guide-link { display: none; }
 button, input { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .5; transform: none !important; }

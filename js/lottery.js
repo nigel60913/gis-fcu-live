@@ -13,6 +13,7 @@ let drawStartedAt = null;
 let drawing = false;
 let pageBooted = false;
 let responseCount = 0;
+const embeddedInDisplay = new URLSearchParams(location.search).get("display") === "1";
 
 bindNetworkStatus();
 const audio = createLotteryAudio();
@@ -20,7 +21,7 @@ restoreVolume();
 
 onAuthStateChanged(auth, async (user) => {
   const allowed = user && (ADMIN_EMAILS.length === 0 || ADMIN_EMAILS.includes(user.email));
-  if (!allowed) {
+  if (!allowed && !embeddedInDisplay) {
     $("lotteryStage").hidden = true;
     $("accessGate").hidden = false;
     $("gateMessage").textContent = user
@@ -31,6 +32,7 @@ onAuthStateChanged(auth, async (user) => {
   }
   $("accessGate").hidden = true;
   $("lotteryStage").hidden = false;
+  document.body.classList.toggle("embedded-display", embeddedInDisplay);
   if (pageBooted) return;
   pageBooted = true;
   wireEvents();
