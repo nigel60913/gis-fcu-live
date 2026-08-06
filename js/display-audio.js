@@ -39,7 +39,9 @@ export function createDisplayAudio() {
     30: "assets/audio/30.mp3",
     60: "assets/audio/60.mp3",
   };
-  const MUSIC_MODES = new Set(["lobby", "results"]);
+  // The lottery reveal shares the upbeat answer-reveal track so the projected
+  // draw has a full musical bed instead of only a short synthesized chime.
+  const MUSIC_MODES = new Set(["lobby", "results", "lottery"]);
   const MAX_OUTPUT_GAIN = 5.2;
   const SOURCE_GAIN = 1.35;
   const savedVolume = Number.parseInt(localStorage.getItem(VOLUME_KEY), 10);

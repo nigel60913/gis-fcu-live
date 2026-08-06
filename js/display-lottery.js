@@ -1,6 +1,5 @@
-import { db, auth, collection, getDocs, onAuthStateChanged, ADMIN_EMAILS } from "./firebase.js";
+import { db, collection, getDocs } from "./firebase.js";
 import { escapeHtml } from "./utils.js";
-import { bindNetworkStatus } from "./ui.js";
 import { WINNER_COUNT, buildParticipantPool, sampleParticipants, buildWinnersCsv, randomInt } from "./lottery-core.mjs";
 
 const DRAW_DURATION_MS = 5000;
@@ -11,31 +10,28 @@ let participants = [];
 let winners = [];
 let drawStartedAt = null;
 let drawing = false;
-let pageBooted = false;
 let responseCount = 0;
+let audio;
 
-bindNetworkStatus();
-const audio = createLotteryAudio();
-restoreVolume();
-
-onAuthStateChanged(auth, async (user) => {
-  const allowed = user && (ADMIN_EMAILS.length === 0 || ADMIN_EMAILS.includes(user.email));
-  if (!allowed) {
-    $("lotteryStage").hidden = true;
-    $("accessGate").hidden = false;
-    $("gateMessage").textContent = user
-      ? "此帳號不在主持人授權名單，請返回控制台改用授權帳號登入。"
-      : "請先回到主持控制台，以 Google 帳號登入後再開啟抽獎頁。";
-    $("backToAdmin").hidden = false;
-    return;
-  }
-  $("accessGate").hidden = true;
-  $("lotteryStage").hidden = false;
-  if (pageBooted) return;
-  pageBooted = true;
+function initializeLottery() {
+  participants = [];
+  winners = [];
+  drawStartedAt = null;
+  drawing = false;
+  responseCount = 0;
+  audio = createLotteryAudio();
+  restoreVolume();
   wireEvents();
-  await loadParticipants();
-});
+  return loadParticipants();
+}
+
+export async function bootDisplayLottery() {
+  document.body.classList.add("embedded-display");
+  $("lotteryStage").hidden = false;
+  await initializeLottery();
+  // Display audio owns the projected answer-reveal track and volume controls.
+  audio.setVolume(0);
+}
 
 function wireEvents() {
   $("btnDraw").onclick = () => startDraw(false);
