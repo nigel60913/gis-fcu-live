@@ -119,11 +119,7 @@ function wireStatic() {
   $("btnClearResponses").onclick = clearResponses;
   $("btnDownloadResponses").onclick = downloadResponses;
   $("btnForceRelogin").onclick = forceAudienceRelogin;
-  $("btnLottery").onclick = () => {
-    const lotteryWindow = window.open(lotteryUrl(), "_blank");
-    if (lotteryWindow) lotteryWindow.opener = null;
-    else toast("瀏覽器已阻擋新視窗，請允許彈出視窗後再試一次");
-  };
+  $("btnLottery").onclick = () => changeState("lottery");
   $("btnNewQ").onclick = () => openEditor();
   $("btnLoadSeed").onclick = loadSeed;
   $("btnTemplate").onclick = downloadQuestionTemplate;
@@ -167,9 +163,6 @@ function audienceUrl() {
 }
 function displayUrl() {
   return location.href.replace(/admin\.html.*$/, "display.html");
-}
-function lotteryUrl() {
-  return location.href.replace(/admin\.html.*$/, "lottery.html");
 }
 function renderQr() {
   const box = $("qrcode");
@@ -219,7 +212,12 @@ async function changeState(state) {
   });
   if (state !== "live") timer.stop();
   toast(
-    { live: "投票已開始", locked: "投票已停止", closed: "答案已公布" }[state],
+    {
+      live: "投票已開始",
+      locked: "投票已停止",
+      closed: "答案已公布",
+      lottery: "抽獎畫面已顯示於投影頁",
+    }[state],
   );
 }
 function renderControl() {
